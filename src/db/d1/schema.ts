@@ -8,6 +8,7 @@ export * from "../sam.schema";
 export * from "../better-auth-schema";
 export * from "../billing.schema";
 export * from "../plans.schema";
+export * from "../login-events.schema";
 export * from "../ga4.schema";
 export * from "../gsc.schema";
 export * from "../telemetry.schema";

@@ -11,6 +11,7 @@ import {
 import { AppError } from "@/server/lib/errors";
 
 const PAGE_SIZE = 25;
+const LOGIN_EVENT_LIMIT = 50;
 
 /**
  * Plans, credits and entitlements only exist in this database under
@@ -71,11 +72,16 @@ async function getWorkspaceDetail(organizationId: string) {
     throw new AppError("NOT_FOUND", `Unknown workspace ${organizationId}`);
   }
 
-  const [projects, ledger, planFeatureKeys] = await Promise.all([
+  const [projects, ledger, planFeatureKeys, loginEvents] = await Promise.all([
     AdminRepository.listWorkspaceProjects(organizationId),
     LocalBillingRepository.listLedgerEntries(organizationId, 50),
     workspace.planId
       ? LocalBillingRepository.listPlanFeatureKeys(workspace.planId)
+      : Promise.resolve([]),
+    // Delegated deployments have organizations with no linked user, and so no
+    // sign-in history to read.
+    workspace.userId
+      ? AdminRepository.listLoginEvents(workspace.userId, LOGIN_EVENT_LIMIT)
       : Promise.resolve([]),
   ]);
 
@@ -85,9 +91,11 @@ async function getWorkspaceDetail(organizationId: string) {
       isAdmin: roleListIncludesAdmin(workspace.role),
       creditsRemaining:
         (workspace.monthlyRemaining ?? 0) + (workspace.topupRemaining ?? 0),
+      lastLoginAt: loginEvents[0]?.createdAt ?? null,
     },
     planFeatureKeys,
     projects,
+    loginEvents,
     ledger: ledger.map((entry) => ({
       ...entry,
       costUsdDisplay: entry.costUsd ?? null,

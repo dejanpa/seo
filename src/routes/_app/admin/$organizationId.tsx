@@ -17,10 +17,12 @@ import {
 } from "@/client/features/admin/queries";
 import { LocalBillingNotice } from "@/client/features/admin/LocalBillingNotice";
 import { WorkspaceLedgerTable } from "@/client/features/admin/WorkspaceLedgerTable";
+import { UserLoginHistory } from "@/client/features/admin/UserLoginHistory";
 import {
   formatCredits,
   formatCreditsAsUsd,
   formatDate,
+  formatDateTime,
 } from "@/client/features/admin/format";
 import { planFeatureLabel } from "@/shared/plan-features";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
@@ -151,8 +153,12 @@ function AdminWorkspacePage() {
             </h2>
             <p className="text-sm text-base-content/60">
               {workspace.userName ?? "No account linked"} ·{" "}
-              {workspace.organizationName} · created{" "}
-              {formatDate(workspace.organizationCreatedAt)}
+              {workspace.organizationName}
+            </p>
+            <p className="text-sm text-base-content/60">
+              Signed up {formatDate(workspace.userCreatedAt)} · workspace
+              created {formatDate(workspace.organizationCreatedAt)} · last
+              sign-in {formatDateTime(workspace.lastLoginAt)}
             </p>
             <p className="mt-2 text-sm">
               {workspace.planName ?? "No plan"} ·{" "}
@@ -330,6 +336,8 @@ function AdminWorkspacePage() {
           ) : null}
         </ul>
       </section>
+
+      <UserLoginHistory events={detail.data?.loginEvents ?? []} />
 
       <WorkspaceLedgerTable entries={detail.data?.ledger ?? []} />
     </div>

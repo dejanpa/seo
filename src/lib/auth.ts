@@ -19,6 +19,7 @@ import {
   hasHostedTurnstileConfig,
 } from "@/lib/auth-turnstile";
 import { getOrCreateDefaultHostedOrganization } from "@/server/auth/default-hosted-organization";
+import { recordLoginEvent } from "@/server/auth/login-events";
 import {
   sendHostedPasswordResetEmail,
   sendHostedVerificationEmail,
@@ -147,6 +148,9 @@ function createAuth() {
                 activeOrganizationId: organizationId,
               },
             };
+          },
+          after: async (session) => {
+            await recordLoginEvent(session);
           },
         },
       },

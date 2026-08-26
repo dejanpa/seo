@@ -7,6 +7,7 @@ import {
   plans,
   projects,
   user,
+  userLoginEvents,
 } from "@/db/schema";
 
 // The console lists organizations, not users: one user owns exactly one
@@ -117,6 +118,20 @@ async function listWorkspaceProjects(organizationId: string) {
     .orderBy(desc(projects.createdAt));
 }
 
+async function listLoginEvents(userId: string, limit: number) {
+  return db
+    .select({
+      id: userLoginEvents.id,
+      createdAt: userLoginEvents.createdAt,
+      ipAddress: userLoginEvents.ipAddress,
+      userAgent: userLoginEvents.userAgent,
+    })
+    .from(userLoginEvents)
+    .where(eq(userLoginEvents.userId, userId))
+    .orderBy(desc(userLoginEvents.createdAt))
+    .limit(limit);
+}
+
 async function getUserById(userId: string) {
   const [row] = await db
     .select()
@@ -144,6 +159,7 @@ export const AdminRepository = {
   getWorkspace,
   findOrganizationIdForUser,
   listWorkspaceProjects,
+  listLoginEvents,
   getUserById,
   setUserRole,
   countAdmins,

@@ -18,3 +18,10 @@ export function formatDate(value: string | Date | null | undefined) {
   const date = typeof value === "string" ? new Date(value) : value;
   return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString();
 }
+
+/** Sign-in history needs the clock time, not just the day. */
+export function formatDateTime(value: string | Date | null | undefined) {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+}

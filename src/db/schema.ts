@@ -6,6 +6,7 @@ import * as sqliteSam from "./sam.schema";
 import * as sqliteAuth from "./better-auth-schema";
 import * as sqliteBilling from "./billing.schema";
 import * as sqlitePlans from "./plans.schema";
+import * as sqliteLoginEvents from "./login-events.schema";
 import * as sqliteGa4 from "./ga4.schema";
 import * as sqliteGsc from "./gsc.schema";
 import * as sqliteTelemetry from "./telemetry.schema";
@@ -16,6 +17,7 @@ import * as pgSam from "./pg/sam.schema";
 import * as pgAuth from "./pg/better-auth-schema";
 import * as pgBilling from "./pg/billing.schema";
 import * as pgPlans from "./pg/plans.schema";
+import * as pgLoginEvents from "./pg/login-events.schema";
 import * as pgGa4 from "./pg/ga4.schema";
 import * as pgGsc from "./pg/gsc.schema";
 import * as pgTelemetry from "./pg/telemetry.schema";
@@ -37,6 +39,7 @@ type AppSchema = typeof sqliteApp &
   typeof sqliteAuth &
   typeof sqliteBilling &
   typeof sqlitePlans &
+  typeof sqliteLoginEvents &
   typeof sqliteGa4 &
   typeof sqliteGsc &
   typeof sqliteTelemetry;
@@ -51,6 +54,7 @@ const runtimeSchema =
         ...pgAuth,
         ...pgBilling,
         ...pgPlans,
+        ...pgLoginEvents,
         ...pgGa4,
         ...pgGsc,
         ...pgTelemetry,
@@ -63,6 +67,7 @@ const runtimeSchema =
         ...sqliteAuth,
         ...sqliteBilling,
         ...sqlitePlans,
+        ...sqliteLoginEvents,
         ...sqliteGa4,
         ...sqliteGsc,
         ...sqliteTelemetry,
@@ -107,6 +112,7 @@ export const {
   planFeatures,
   organizationSubscriptions,
   creditLedgerEntries,
+  userLoginEvents,
   ga4Connections,
   gscConnections,
   telemetryState,

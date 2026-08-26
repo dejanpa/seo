@@ -70,7 +70,8 @@ function AdminWorkspacesPage() {
                 <th>Plan</th>
                 <th className="text-right">Credits left</th>
                 <th>Status</th>
-                <th>Created</th>
+                <th>Signed up</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -118,14 +119,23 @@ function AdminWorkspacesPage() {
                     </span>
                   </td>
                   <td className="text-sm">
-                    {formatDate(row.organizationCreatedAt)}
+                    {formatDate(row.userCreatedAt ?? row.organizationCreatedAt)}
+                  </td>
+                  <td className="text-right">
+                    <Link
+                      to="/admin/$organizationId"
+                      params={{ organizationId: row.organizationId }}
+                      className="btn btn-ghost btn-xs"
+                    >
+                      Edit
+                    </Link>
                   </td>
                 </tr>
               ))}
               {data && data.rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="py-8 text-center text-sm text-base-content/60"
                   >
                     No workspaces match that search.

@@ -309,6 +309,13 @@
       "when": 1787751760479,
       "tag": "0043_plans_and_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "6",
+      "when": 1787784220396,
+      "tag": "0044_user_login_events",
+      "breakpoints": true
     }
   ]
 }
