@@ -27,6 +27,7 @@ import {
 } from "@/serverFunctions/dashboard";
 import { setProjectDomain } from "@/serverFunctions/projects";
 import type { DashboardHeroStep } from "@/types/schemas/dashboard";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 const HERO_COPY: Record<
   DashboardHeroStep,
@@ -39,7 +40,7 @@ const HERO_COPY: Record<
   },
   mcp: {
     title: "Connect your AI agent",
-    body: "OpenSEO is built to be used from agents like Claude. Connect once, then ask it to use OpenSEO to help build your SEO strategy.",
+    body: `${PRODUCT_NAME} is built to be used from agents like Claude. Connect once, then ask it to use ${PRODUCT_NAME} to help build your SEO strategy.`,
     cta: "Show me how",
   },
   gsc: {

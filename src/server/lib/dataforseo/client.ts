@@ -92,27 +92,63 @@ export function createDataforseoClient(customer: BillingCustomerContext) {
       ),
     },
     backlinks: {
-      summary: meter(customer, (s) => s.fetchBacklinksSummary),
-      rows: meter(customer, (s) => s.fetchBacklinksRows),
-      referringDomains: meter(customer, (s) => s.fetchReferringDomains),
-      domainPages: meter(customer, (s) => s.fetchDomainPagesSummary),
-      history: meter(customer, (s) => s.fetchBacklinksHistory),
+      summary: meter(customer, (s) => s.fetchBacklinksSummary, "backlinks"),
+      rows: meter(customer, (s) => s.fetchBacklinksRows, "backlinks"),
+      referringDomains: meter(
+        customer,
+        (s) => s.fetchReferringDomains,
+        "backlinks",
+      ),
+      domainPages: meter(
+        customer,
+        (s) => s.fetchDomainPagesSummary,
+        "backlinks",
+      ),
+      history: meter(customer, (s) => s.fetchBacklinksHistory, "backlinks"),
     },
     keywords: {
-      related: meter(customer, (s) => s.fetchRelatedKeywords),
-      suggestions: meter(customer, (s) => s.fetchKeywordSuggestions),
-      ideas: meter(customer, (s) => s.fetchKeywordIdeas),
+      related: meter(
+        customer,
+        (s) => s.fetchRelatedKeywords,
+        "keyword_research",
+      ),
+      suggestions: meter(
+        customer,
+        (s) => s.fetchKeywordSuggestions,
+        "keyword_research",
+      ),
+      ideas: meter(customer, (s) => s.fetchKeywordIdeas, "keyword_research"),
       // Google Ads endpoints for countries Labs doesn't support.
-      adsIdeas: meter(customer, (s) => s.fetchAdsKeywordIdeas),
-      adsSearchVolume: meter(customer, (s) => s.fetchAdsSearchVolume),
+      adsIdeas: meter(
+        customer,
+        (s) => s.fetchAdsKeywordIdeas,
+        "keyword_research",
+      ),
+      adsSearchVolume: meter(
+        customer,
+        (s) => s.fetchAdsSearchVolume,
+        "keyword_research",
+      ),
     },
     domain: {
-      rankOverview: meter(customer, (s) => s.fetchDomainRankOverview),
-      rankedKeywords: meter(customer, (s) => s.fetchRankedKeywords),
-      relevantPages: meter(customer, (s) => s.fetchRelevantPages),
+      rankOverview: meter(
+        customer,
+        (s) => s.fetchDomainRankOverview,
+        "domain_overview",
+      ),
+      rankedKeywords: meter(
+        customer,
+        (s) => s.fetchRankedKeywords,
+        "domain_overview",
+      ),
+      relevantPages: meter(
+        customer,
+        (s) => s.fetchRelevantPages,
+        "domain_overview",
+      ),
     },
     serp: {
-      live: meter(customer, (s) => s.fetchLiveSerp),
+      live: meter(customer, (s) => s.fetchLiveSerp, "keyword_research"),
       rankCheck: meter(customer, (s) => s.fetchRankCheckSerp, "rank_tracking"),
       // Posts up to 100 queued rank check tasks; one metered charge covers the
       // whole batch (DataForSEO bills task_post at post time, collection is
@@ -133,20 +169,37 @@ export function createDataforseoClient(customer: BillingCustomerContext) {
         (s) => s.fetchKeywordOverview,
         "rank_tracking",
       ),
-      serpCompetitors: meter(customer, (s) => s.fetchSerpCompetitors),
+      serpCompetitors: meter(
+        customer,
+        (s) => s.fetchSerpCompetitors,
+        "keyword_research",
+      ),
     },
     lighthouse: {
-      live: meter(customer, (s) => s.fetchLighthouseResult),
+      live: meter(customer, (s) => s.fetchLighthouseResult, "site_audit"),
     },
     aiSearch: {
-      mentionsSearch: meter(customer, (s) => s.fetchLlmMentionsSearch),
-      aggregatedMetrics: meter(customer, (s) => s.fetchLlmAggregatedMetrics),
-      topPages: meter(customer, (s) => s.fetchLlmTopPages),
+      mentionsSearch: meter(
+        customer,
+        (s) => s.fetchLlmMentionsSearch,
+        "ai_citations",
+      ),
+      aggregatedMetrics: meter(
+        customer,
+        (s) => s.fetchLlmAggregatedMetrics,
+        "ai_citations",
+      ),
+      topPages: meter(customer, (s) => s.fetchLlmTopPages, "ai_citations"),
       crossAggregatedMetrics: meter(
         customer,
         (s) => s.fetchLlmCrossAggregatedMetrics,
+        "ai_citations",
       ),
-      llmResponse: meter(customer, (s) => s.fetchLlmResponse),
+      llmResponse: meter(
+        customer,
+        (s) => s.fetchLlmResponse,
+        "ai_prompt_responses",
+      ),
     },
   } as const;
 }
@@ -165,8 +218,11 @@ async function meterDataforseoCall<T>(
 
   const billingCustomer = await getOrCreateOrganizationCustomer(customer);
 
+  // Passing the feature lets the local billing provider refuse a tool the
+  // organization's plan does not include, before any provider spend happens.
   const { monthlyRemaining } = await assertUsageCreditsAvailable(
     billingCustomer.id,
+    creditFeature,
   );
 
   let result: DataforseoApiResponse<T>;

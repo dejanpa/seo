@@ -47,6 +47,9 @@ vi.mock("@/server/billing/subscription", async (importOriginal) => {
 
 vi.mock("@/server/lib/runtime-env", () => ({
   isHostedServerAuthMode: isHostedServerAuthModeMock,
+  // Undefined BILLING_PROVIDER keeps the dispatcher on the Autumn provider,
+  // which is what the autumn.check mocks below exercise.
+  getOptionalEnvValue: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/server/lib/posthog", () => ({

@@ -4,6 +4,7 @@ import { AppError } from "@/server/lib/errors";
 import { errorHandlingMiddleware } from "@/middleware/errorHandling";
 import type { EnsuredUserContext } from "@/middleware/ensure-user/types";
 import { ensureUserMiddleware } from "@/middleware/ensureUser";
+import { assertAdminUser } from "@/server/features/admin/access";
 
 const ensuredUserContextSchema: z.ZodType<EnsuredUserContext> = z.object({
   userId: z.string(),
@@ -57,5 +58,17 @@ export const requireProjectContext = [
         projectId: authenticatedContext.project.id,
       },
     });
+  }),
+] as const;
+
+// Operator console. Runs the same authentication as any other server function,
+// then refuses anyone who is not an administrator — so an admin endpoint can
+// never be reached by guessing its name.
+export const requireAdminContext = [
+  createMiddleware({ type: "function" }).server(async ({ next, context }) => {
+    const authenticatedContext = getAuthenticatedContext(context);
+    await assertAdminUser(authenticatedContext);
+
+    return next({ context: authenticatedContext });
   }),
 ] as const;

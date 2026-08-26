@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { genericOAuth, organization } from "better-auth/plugins";
+import { admin, genericOAuth, organization } from "better-auth/plugins";
 import { baseAuthOptions } from "@/lib/auth-options";
 import { GA4_OAUTH_PROVIDER_ID, GA4_OAUTH_SCOPES } from "@/shared/ga4";
 import { GSC_OAUTH_PROVIDER_ID, GSC_OAUTH_SCOPES } from "@/shared/gsc";
@@ -52,6 +52,12 @@ export function createBaseAuthConfig() {
         invitationLimit: 0,
         disableOrganizationDeletion: true,
       }),
+      // Operator console. Grants /api/auth/admin/* (list, ban, impersonate) to
+      // users whose `role` includes "admin"; everyone else is refused there by
+      // Better Auth itself. Who counts as an admin for OpenSEO's own /admin
+      // routes is decided by isAdminUser (src/server/features/admin/roles.ts),
+      // which also honours the ADMIN_EMAILS bootstrap.
+      admin(),
       genericOAuth({
         config: [
           {

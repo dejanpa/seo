@@ -1,16 +1,16 @@
 {
-  "name": "openseo",
+  "name": "rankloupe",
   "owner": {
-    "name": "Every App, Inc",
-    "email": "support@openseo.so"
+    "name": "Cortex Labs",
+    "email": "support@cortexlabs.cloud"
   },
   "metadata": {
-    "description": "OpenSEO's official Cursor plugin marketplace."
+    "description": "Rankloupe's official Cursor plugin marketplace."
   },
   "plugins": [
     {
-      "name": "openseo",
-      "source": "plugins/openseo",
+      "name": "rankloupe",
+      "source": "plugins/rankloupe",
       "description": "SEO made simple. Research keywords and competitors, audit sites, track rankings, and use Search Console data from your agent."
     }
   ]

@@ -37,6 +37,7 @@ import { captureServerEvent } from "@/server/lib/posthog";
 import { getPublicOrigin } from "@/server/mcp/public-origin";
 import { MCP_SCOPE } from "@/lib/oauth-resource";
 import type { ToolAuthContext } from "@/server/mcp/context";
+import { PRODUCT_NAME, APP_URL } from "@/shared/brand";
 
 // SAM's read-only view of the project's shared memory. The block has no `set`
 // provider, so Think exposes no set_context tool for it; writes go through the
@@ -207,7 +208,7 @@ export class SamChatAgent extends Think {
     return withPgClient(async () => {
       const ctx = await this.loadSamContext();
       if (!ctx) {
-        return "You are SAM, the SEO agent inside OpenSEO. This chat session no longer exists; tell the user to start a new chat.";
+        return `You are SAM, the SEO agent inside ${PRODUCT_NAME}. This chat session no longer exists; tell the user to start a new chat.`;
       }
       const context = await ProjectContextService.getProjectContext(
         ctx.project.id,
@@ -283,8 +284,7 @@ export class SamChatAgent extends Think {
       }
 
       const baseUrl =
-        (await this.ctx.storage.get<string>(PUBLIC_ORIGIN_KEY)) ??
-        "https://app.openseo.so";
+        (await this.ctx.storage.get<string>(PUBLIC_ORIGIN_KEY)) ?? APP_URL;
       const authContext: ToolAuthContext = {
         userId: ctx.row.userId,
         userEmail: ctx.userEmail,

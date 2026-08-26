@@ -1,6 +1,7 @@
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import type { SkillSource } from "agents/skills";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 // Bundle the repo's public-facing skills (.agents/skills) into SAM at build
 // time. Skills marked `metadata.internal: true` are repo-dev tooling and stay
@@ -18,7 +19,7 @@ const skillFiles = import.meta.glob<string>("/.agents/skills/*/SKILL.md", {
 
 // The skill bodies are written for external MCP clients (Claude Code); this
 // note reframes the surface so SAM skips the steps that don't apply in-app.
-const SAM_SURFACE_NOTE = `> Surface note: you are SAM, running inside the OpenSEO app. You are already
+const SAM_SURFACE_NOTE = `> Surface note: you are SAM, running inside the ${PRODUCT_NAME} app. You are already
 > authenticated and scoped to the user's current project — skip any "verify the
 > MCP connection", "choose a project", or skill-install steps. You have no
 > local filesystem: skip local-folder and file steps, and store durable

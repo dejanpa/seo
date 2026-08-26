@@ -24,6 +24,12 @@ export const user = pgTable("user", {
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
   analyticsOptedOut: boolean("analytics_opted_out"),
+  // Better Auth admin plugin. `role` is a comma-separated role list ("user",
+  // "admin"); null is treated as the default "user" role.
+  role: text("role"),
+  banned: boolean("banned"),
+  banReason: text("ban_reason"),
+  banExpires: timestampColumn("ban_expires"),
 });
 
 export const session = pgTable(
@@ -42,6 +48,8 @@ export const session = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     activeOrganizationId: text("active_organization_id"),
+    // Set to the admin's user id while that admin is impersonating this user.
+    impersonatedBy: text("impersonated_by"),
   },
   (table) => [index("session_userId_idx").on(table.userId)],
 );

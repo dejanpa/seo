@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "rankloupe": {
+      "type": "http",
+      "url": "https://seo.auto-ai.cloud/mcp"
+    }
+  },
+  "name": "rankloupe",
+  "displayName": "Rankloupe",
+  "description": "Without good data, your agent gives generic advice. Keyword research, competitor research, backlinks, and site audits, grounded in your own site.",
+  "author": {
+    "name": "Cortex Labs",
+    "url": "https://cortexlabs.cloud"
+  },
+  "homepage": "https://seo.auto-ai.cloud",
+  "repository": "https://github.com/dejanpa/seo"
+}

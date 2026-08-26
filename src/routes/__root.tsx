@@ -27,12 +27,13 @@ import { isHostedClientAuthMode } from "@/lib/auth-mode";
 import { Toaster } from "sonner";
 import { queryClient } from "@/client/tanstack-db";
 import { getActiveOrganizationId } from "@/lib/auth-session";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       {
-        title: "OpenSEO",
+        title: PRODUCT_NAME,
       },
       {
         charSet: "utf-8",

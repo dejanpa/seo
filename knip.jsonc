@@ -24,6 +24,10 @@
     // client.ts (loadDataforseoSections) + property access, which knip
     // can't trace
     "src/server/lib/dataforseo/sections.ts",
+    // Billing providers — selected at runtime through the dynamic imports in
+    // billing/subscription.ts, which knip can't trace
+    "src/server/billing/autumn-subscription.ts",
+    "src/server/billing/local/subscription.ts",
   ],
   // badseo/ is the standalone broken-SEO fixture worker (own deps/config),
   // like web/ it isn't part of the app's module graph.

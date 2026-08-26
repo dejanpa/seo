@@ -7,6 +7,7 @@ import { CopyButton } from "@/client/features/ai-mcp/SetupControls";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { authClient } from "@/lib/auth-client";
+import { APP_URL } from "@/shared/brand";
 
 // Better Auth rejects longer names with INVALID_NAME_LENGTH.
 const MAX_KEY_NAME_LENGTH = 32;
@@ -19,7 +20,7 @@ export function ApiKeySettings() {
 
   const mcpUrl =
     typeof window === "undefined"
-      ? "https://app.openseo.so/mcp"
+      ? `${APP_URL}/mcp`
       : `${window.location.origin}/mcp`;
 
   const apiKeysQuery = useQuery({
@@ -94,16 +95,6 @@ export function ApiKeySettings() {
           <p className="mt-1 text-sm text-base-content/60">
             Use this for remote agents like Hermes where the normal login flow
             doesn't work.
-          </p>
-          <p className="mt-1 text-sm">
-            <a
-              className="link link-primary"
-              href="https://openseo.so/docs/mcp"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Setup guide
-            </a>
           </p>
         </div>
         <button

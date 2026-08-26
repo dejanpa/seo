@@ -16,8 +16,8 @@ import {
   formatStartedAt,
   HttpStatusBadge,
   StatusBadge,
-  SUPPORT_EMAIL,
 } from "@/client/features/audit/shared";
+import { SUPPORT_EMAIL } from "@/shared/brand";
 
 export const Route = createFileRoute<"/_project/p/$projectId/audit/">(
   "/_project/p/$projectId/audit/",

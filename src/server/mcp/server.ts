@@ -69,6 +69,7 @@ import {
   runSiteAuditTool,
 } from "@/server/mcp/tools/site-audit-tools";
 import { whoamiTool } from "@/server/mcp/tools/whoami";
+import { APP_URL, PRODUCT_NAME } from "@/shared/brand";
 
 type ToolSchema = z.ZodType | z.ZodRawShape;
 
@@ -128,23 +129,22 @@ function registerOpenSeoTool<Input extends ToolSchema>(
 export function createOpenSeoMcpServer(authProps: McpProps) {
   const server = new McpServer(
     {
-      name: "OpenSEO MCP",
-      title: "OpenSEO",
+      name: `${PRODUCT_NAME} MCP`,
+      title: PRODUCT_NAME,
       version: "0.0.12",
       description:
         "SEO research tools for AI agents: keyword research and metrics, SERP and local SERP results, domain and backlink analysis, rank tracking, and Google Search Console performance.",
-      websiteUrl: "https://openseo.so",
+      websiteUrl: APP_URL,
       icons: [
         {
-          src: "https://openseo.so/android-chrome-512x512.png",
+          src: `${APP_URL}/android-chrome-512x512.png`,
           mimeType: "image/png",
           sizes: ["512x512"],
         },
       ],
     },
     {
-      instructions:
-        "OpenSEO research tools use credits. Proceed with normal focused research, but ask the user for confirmation before planned batches over 2,000 credits.",
+      instructions: `${PRODUCT_NAME} research tools use credits. Proceed with normal focused research, but ask the user for confirmation before planned batches over 2,000 credits.`,
     },
   );
 

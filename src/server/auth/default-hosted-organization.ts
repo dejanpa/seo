@@ -1,5 +1,6 @@
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { slugify, toHex } from "./org-slug";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 type HostedUser = {
   id: string;
@@ -18,7 +19,7 @@ type HostedOrganizationCreator = (
 ) => Promise<{ id: string }>;
 
 function getDefaultHostedOrganizationName(user: HostedUser) {
-  const name = user.name?.trim() || user.email.split("@")[0] || "OpenSEO";
+  const name = user.name?.trim() || user.email.split("@")[0] || PRODUCT_NAME;
   return `${name}'s workspace`;
 }
 

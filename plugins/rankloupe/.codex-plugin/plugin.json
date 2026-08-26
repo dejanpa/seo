@@ -1,0 +1,44 @@
+{
+  "name": "rankloupe",
+  "version": "1.0.0",
+  "description": "Without good data, your agent gives generic advice. Keyword research, competitor research, backlinks, and site audits, grounded in your own site.",
+  "author": {
+    "name": "Cortex Labs",
+    "url": "https://cortexlabs.cloud"
+  },
+  "homepage": "https://seo.auto-ai.cloud",
+  "repository": "https://github.com/dejanpa/seo",
+  "license": "MIT",
+  "keywords": [
+    "seo",
+    "keyword-research",
+    "serp",
+    "site-audit",
+    "backlinks",
+    "search-console",
+    "rank-tracking",
+    "local-seo"
+  ],
+  "skills": "./skills/",
+  "mcpServers": {
+    "rankloupe": {
+      "url": "https://seo.auto-ai.cloud/mcp"
+    }
+  },
+  "interface": {
+    "displayName": "Rankloupe",
+    "shortDescription": "Without good data, your agent gives generic advice. Keyword research, competitor research, backlinks, and site audits, grounded in your own site.",
+    "longDescription": "Without good data, your agent gives generic advice. Keyword research, competitor research, backlinks, and site audits, grounded in your own site.",
+    "developerName": "Cortex Labs",
+    "category": "Productivity",
+    "capabilities": ["Interactive"],
+    "websiteURL": "https://seo.auto-ai.cloud",
+    "privacyPolicyURL": "https://cortexlabs.cloud/privacy-policy",
+    "termsOfServiceURL": "https://cortexlabs.cloud/terms",
+    "defaultPrompt": [
+      "Research keywords for my site and shortlist the best opportunities.",
+      "Audit my site and give me a one-page report with a single next action.",
+      "Track my rankings for these keywords and summarize what changed."
+    ]
+  }
+}

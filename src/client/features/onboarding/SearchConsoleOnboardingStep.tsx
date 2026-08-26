@@ -19,6 +19,7 @@ import {
   setGscSite,
 } from "@/serverFunctions/gsc";
 import { getProjects, setProjectMarket } from "@/serverFunctions/projects";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 const GRANT_STATUS_KEY = ["gscGrantStatus"];
 
@@ -45,8 +46,8 @@ export function SearchConsoleOnboardingStep() {
         {project ? <GscConnect projectId={project.id} /> : <Checking />}
 
         <p className="hidden sm:block text-xs leading-relaxed text-base-content/55">
-          For now, Search Console data flows through the OpenSEO MCP. We're
-          building it into the OpenSEO app soon too.
+          For now, Search Console data flows through the {PRODUCT_NAME} MCP.
+          We're building it into the {PRODUCT_NAME} app soon too.
         </p>
       </div>
 

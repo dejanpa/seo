@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { getAuthMode, isHostedClientAuthMode } from "@/lib/auth-mode";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { ClaudeIcon, CodexIcon } from "@/client/features/ai-mcp/AgentIcons";
@@ -9,10 +9,13 @@ import {
   Collapsible,
   CopyButton,
 } from "@/client/features/ai-mcp/SetupControls";
+import {
+  PRODUCT_NAME,
+  SKILLS_REPO,
+  SKILLS_REPO_DIR,
+  APP_URL,
+} from "@/shared/brand";
 
-const DISCORD_URL = "https://discord.gg/c9uGs3cFXr";
-const SUPPORT_EMAIL = "ben@openseo.so";
-const SAM_GITHUB_URL = "https://github.com/every-app/sam";
 const SKILL_NAMES = [
   "seo-project-setup",
   "seo-coach",
@@ -24,19 +27,19 @@ const SKILL_NAMES = [
   "local-seo",
   "seo-audit",
 ];
-const SKILLS_INSTALL = `npx skills add every-app/open-seo`;
-const ALL_SKILLS_INSTALL = `npx skills add every-app/open-seo --skill '*'`;
-const CLAUDE_CODE_SKILLS_INSTALL = `npx skills add every-app/open-seo --skill '*' --agent claude-code`;
-const CODEX_SKILLS_INSTALL = `npx skills add every-app/open-seo --skill '*' --agent codex`;
-const SKILLS_MANUAL_INSTALL = `git clone https://github.com/every-app/open-seo.git
+const SKILLS_INSTALL = `npx skills add ${SKILLS_REPO}`;
+const ALL_SKILLS_INSTALL = `npx skills add ${SKILLS_REPO} --skill '*'`;
+const CLAUDE_CODE_SKILLS_INSTALL = `npx skills add ${SKILLS_REPO} --skill '*' --agent claude-code`;
+const CODEX_SKILLS_INSTALL = `npx skills add ${SKILLS_REPO} --skill '*' --agent codex`;
+const SKILLS_MANUAL_INSTALL = `git clone https://github.com/${SKILLS_REPO}.git
 
 # Codex
 mkdir -p ~/.codex/skills
-cp -R open-seo/.agents/skills/* ~/.codex/skills/
+cp -R ${SKILLS_REPO_DIR}/.agents/skills/* ~/.codex/skills/
 
 # Claude Code
 mkdir -p ~/.claude/skills
-cp -R open-seo/.agents/skills/* ~/.claude/skills/`;
+cp -R ${SKILLS_REPO_DIR}/.agents/skills/* ~/.claude/skills/`;
 
 export const Route = createFileRoute("/_app/ai")({
   component: AiPage,
@@ -45,7 +48,7 @@ export const Route = createFileRoute("/_app/ai")({
 function AiPage() {
   const mcpUrl =
     typeof window === "undefined"
-      ? "https://app.openseo.so/mcp"
+      ? `${APP_URL}/mcp`
       : `${window.location.origin}/mcp`;
 
   return (
@@ -53,8 +56,9 @@ function AiPage() {
       <div className="mx-auto max-w-3xl">
         <h1 className="text-2xl font-semibold">AI & MCP</h1>
         <p className="mt-2 text-sm text-base-content/70 leading-relaxed">
-          Connect your AI agent to OpenSEO. Run keyword research, SERP analysis,
-          domain lookups, and backlink reviews from your editor or chat.
+          Connect your AI agent to {PRODUCT_NAME}. Run keyword research, SERP
+          analysis, domain lookups, and backlink reviews from your editor or
+          chat.
         </p>
 
         {getAuthMode(import.meta.env.AUTH_MODE) === "cloudflare_access" ? (
@@ -92,9 +96,9 @@ function AiPage() {
             </code>
           </div>
           <p className="mt-2.5 text-xs text-base-content/55 leading-relaxed">
-            Paste this into any MCP client. This URL points at the OpenSEO
-            instance you are using now, whether hosted, self-hosted, or local.
-            Sign in with OpenSEO when prompted.
+            Paste this into any MCP client. This URL points at the{" "}
+            {PRODUCT_NAME} instance you are using now, whether hosted,
+            self-hosted, or local. Sign in with {PRODUCT_NAME} when prompted.
           </p>
           {isHostedClientAuthMode() ? (
             <p className="mt-2 text-xs text-base-content/55">
@@ -154,9 +158,9 @@ function AiPage() {
                   .
                 </li>
                 <li>Paste the MCP URL above and click Add.</li>
-                <li>Approve the OpenSEO login when prompted.</li>
+                <li>Approve the {PRODUCT_NAME} login when prompted.</li>
                 <li>
-                  Optional: after OpenSEO connects, click{" "}
+                  Optional: after {PRODUCT_NAME} connects, click{" "}
                   <span className="font-medium text-base-content">
                     Configure
                   </span>
@@ -216,18 +220,18 @@ function AiPage() {
                   .
                 </li>
                 <li>Paste the MCP URL above.</li>
-                <li>Approve the OpenSEO login when prompted.</li>
+                <li>Approve the {PRODUCT_NAME} login when prompted.</li>
               </ol>
             </Collapsible>
           </div>
         </section>
 
         <section className="mt-12">
-          <h2 className="text-base font-semibold">OpenSEO Skills</h2>
+          <h2 className="text-base font-semibold">{PRODUCT_NAME} Skills</h2>
           <p className="mt-1.5 text-sm text-base-content/70 leading-relaxed">
             Skills give Codex and Claude Code reusable SEO workflows that can
-            call your OpenSEO MCP tools when live SERP, keyword, backlink, or
-            domain data is needed.
+            call your {PRODUCT_NAME} MCP tools when live SERP, keyword,
+            backlink, or domain data is needed.
           </p>
           <div className="mt-4 divide-y divide-base-300 overflow-hidden rounded-lg border border-base-300 bg-base-200">
             <Collapsible
@@ -237,7 +241,7 @@ function AiPage() {
             >
               <CodeBlock code={SKILLS_INSTALL} />
               <p className="text-sm text-base-content/70">
-                You can also auto-accept each OpenSEO skill:
+                You can also auto-accept each {PRODUCT_NAME} skill:
               </p>
               <CodeBlock code={ALL_SKILLS_INSTALL} />
             </Collapsible>
@@ -302,15 +306,6 @@ function AiPage() {
             coding agents. It combines keyword research, source discovery,
             drafting, and QA.
           </p>
-          <a
-            href={SAM_GITHUB_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-base-content transition-colors hover:text-base-content/60"
-          >
-            View Sam on GitHub
-            <ArrowUpRight className="size-3.5" />
-          </a>
         </section>
 
         <section className="mt-12">
@@ -319,8 +314,7 @@ function AiPage() {
             {[
               {
                 title: "In-app SEO Research Agent",
-                description:
-                  "Ask questions and run research without leaving OpenSEO",
+                description: `Ask questions and run research without leaving ${PRODUCT_NAME}`,
               },
               {
                 title: "Content Assistant",
@@ -343,23 +337,6 @@ function AiPage() {
             ))}
           </ul>
         </section>
-
-        <p className="mt-12 text-xs text-base-content/55 leading-relaxed">
-          Have feedback? Reach out on{" "}
-          <a
-            className="link link-primary"
-            href={DISCORD_URL}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Discord
-          </a>{" "}
-          or email{" "}
-          <a className="link link-primary" href={`mailto:${SUPPORT_EMAIL}`}>
-            {SUPPORT_EMAIL}
-          </a>
-          .
-        </p>
       </div>
     </div>
   );

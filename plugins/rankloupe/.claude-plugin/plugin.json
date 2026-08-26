@@ -1,0 +1,29 @@
+{
+  "name": "rankloupe",
+  "displayName": "Rankloupe",
+  "version": "1.0.0",
+  "description": "Without good data, your agent gives generic advice. Keyword research, competitor research, backlinks, and site audits, grounded in your own site.",
+  "author": {
+    "name": "Cortex Labs",
+    "url": "https://cortexlabs.cloud"
+  },
+  "homepage": "https://seo.auto-ai.cloud",
+  "repository": "https://github.com/dejanpa/seo",
+  "license": "MIT",
+  "keywords": [
+    "seo",
+    "keyword-research",
+    "serp",
+    "site-audit",
+    "backlinks",
+    "search-console",
+    "rank-tracking",
+    "local-seo"
+  ],
+  "mcpServers": {
+    "rankloupe": {
+      "type": "http",
+      "url": "https://seo.auto-ai.cloud/mcp"
+    }
+  }
+}

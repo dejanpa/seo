@@ -21,6 +21,7 @@ import {
   AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
   autumnSeoDataCreditsToUsd,
 } from "@/shared/billing";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 export const Route = createFileRoute("/_app/billing")({
   beforeLoad: () => {
@@ -184,7 +185,7 @@ function BillingPage() {
               </div>
               <ul className="space-y-1.5">
                 {[
-                  "Access to all OpenSEO features",
+                  `Access to all ${PRODUCT_NAME} features`,
                   "Includes $10.00 of Usage Credits each month",
                 ].map((item) => (
                   <li

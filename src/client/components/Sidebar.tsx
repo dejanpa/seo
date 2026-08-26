@@ -2,12 +2,14 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import type { LinkOptions } from "@tanstack/react-router";
 import { useEffect, useState, type ComponentType } from "react";
 import {
+  BookOpen,
   CircleHelp,
   CreditCard,
   LayoutGrid,
   LogOut,
   MessageCircle,
   Settings,
+  ShieldCheck,
   User,
   X,
 } from "lucide-react";
@@ -18,10 +20,12 @@ import {
 import { ProjectSwitcher } from "@/client/features/projects/ProjectSwitcher";
 import { SamSidebarPanel } from "@/client/features/sam/SamSidebarPanel";
 import { ThemePreferenceMenuItems } from "@/client/components/ThemePreferenceMenuItems";
+import { useViewerAdminStatus } from "@/client/features/admin/queries";
 import { closeDropdown } from "@/client/lib/dropdown";
 import { signOutAndRedirect, useSession } from "@/lib/auth-client";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
 import { BILLING_ROUTE } from "@/shared/billing";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 interface SidebarProps {
   projectId: string | null;
@@ -36,6 +40,11 @@ const navItemBaseClass =
 // hovered item next to the active one stays visually distinct instead of
 // merging into a single block.
 const navItemClass = `${navItemBaseClass} transition-colors hover:bg-base-300/30 hover:text-base-content`;
+
+// Self-host guide for this instance: page layout, cost per feature, and the
+// Docker/OAuth gotchas. External page, so a plain anchor rather than a router Link.
+const GUIDE_URL =
+  "https://claude.ai/code/artifact/aedc7608-d054-4e29-ab36-bff58419492c";
 
 const navItemActiveProps = {
   // Keep the active tint on hover so the active item does not fall back to the
@@ -126,7 +135,7 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
           onClick={onNavigate}
           className="text-base font-semibold text-base-content"
         >
-          OpenSEO
+          {PRODUCT_NAME}
         </Link>
         {onClose ? (
           <button
@@ -228,6 +237,7 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
   const { data: session } = useSession();
   const isHostedMode = isHostedClientAuthMode();
   const email = session?.user?.email;
+  const viewerAdmin = useViewerAdminStatus();
 
   const closeMenu = () => {
     closeDropdown();
@@ -236,9 +246,20 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="shrink-0 border-t border-base-300 px-2 py-2 pb-safe">
+      <a
+        href={GUIDE_URL}
+        target="_blank"
+        rel="noreferrer"
+        onClick={onNavigate}
+        className={navItemClass}
+      >
+        <BookOpen className="h-4 w-4 shrink-0" />
+        <span className="truncate">Priručnik</span>
+      </a>
+
       <SidebarNavLink
         icon={CircleHelp}
-        label="Help & Community"
+        label="Help & Support"
         onNavigate={onNavigate}
         linkProps={{ to: "/support" }}
       />
@@ -271,6 +292,14 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
                 <Link to={BILLING_ROUTE} onClick={closeMenu}>
                   <CreditCard className="h-4 w-4" />
                   Billing
+                </Link>
+              </li>
+            ) : null}
+            {viewerAdmin.data?.isAdmin ? (
+              <li>
+                <Link to="/admin" onClick={closeMenu}>
+                  <ShieldCheck className="h-4 w-4" />
+                  Admin
                 </Link>
               </li>
             ) : null}

@@ -33,6 +33,11 @@ declare namespace Cloudflare {
     LOOPS_API_KEY?: string;
     LOOPS_TRANSACTIONAL_VERIFY_EMAIL_ID?: string;
     LOOPS_TRANSACTIONAL_RESET_PASSWORD_ID?: string;
+    // Which system owns plans, entitlements and credits. Unset = "autumn".
+    BILLING_PROVIDER?: "autumn" | "local";
+    // Comma-separated emails that are always administrators, regardless of the
+    // role stored on their user row. Bootstraps the first operator.
+    ADMIN_EMAILS?: string;
     AUTUMN_SECRET_KEY?: string;
     AUTUMN_WEBHOOK_SECRET?: string;
     // HMAC secret for the operator-only GDPR storage-erasure endpoint.
