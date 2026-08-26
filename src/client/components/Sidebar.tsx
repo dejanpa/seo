@@ -41,11 +41,6 @@ const navItemBaseClass =
 // merging into a single block.
 const navItemClass = `${navItemBaseClass} transition-colors hover:bg-base-300/30 hover:text-base-content`;
 
-// Self-host guide for this instance: page layout, cost per feature, and the
-// Docker/OAuth gotchas. External page, so a plain anchor rather than a router Link.
-const GUIDE_URL =
-  "https://claude.ai/code/artifact/aedc7608-d054-4e29-ab36-bff58419492c";
-
 const navItemActiveProps = {
   // Keep the active tint on hover so the active item does not fall back to the
   // lighter hover background of navItemClass.
@@ -246,16 +241,12 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="shrink-0 border-t border-base-300 px-2 py-2 pb-safe">
-      <a
-        href={GUIDE_URL}
-        target="_blank"
-        rel="noreferrer"
-        onClick={onNavigate}
-        className={navItemClass}
-      >
-        <BookOpen className="h-4 w-4 shrink-0" />
-        <span className="truncate">Priručnik</span>
-      </a>
+      <SidebarNavLink
+        icon={BookOpen}
+        label="Priručnik"
+        onNavigate={onNavigate}
+        linkProps={{ to: "/help" }}
+      />
 
       <SidebarNavLink
         icon={CircleHelp}
