@@ -1,0 +1,12 @@
+# Local deployment overrides for seo.auto-ai.cloud.
+# compose.yaml hardcodes AUTH_MODE=local_noauth (the documented Docker path);
+# this deployment runs the hosted multi-tenant mode instead, so the auth,
+# billing and admin variables are named here to win over that list.
+services:
+  open-seo:
+    environment:
+      - AUTH_MODE=${AUTH_MODE}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL}
+      - BYPASS_EMAIL_VERIFICATION=${BYPASS_EMAIL_VERIFICATION:-}
+      - BILLING_PROVIDER=${BILLING_PROVIDER}
+      - ADMIN_EMAILS=${ADMIN_EMAILS}
