@@ -23,12 +23,13 @@ import { DomainHistorySection } from "@/client/features/domain/components/Domain
 import { DomainSearchCard } from "@/client/features/domain/components/DomainSearchCard";
 import { KeywordsTab } from "@/client/features/domain/components/KeywordsTab";
 import { PagesTab } from "@/client/features/domain/components/PagesTab";
-import { StatCard } from "@/client/features/domain/components/StatCard";
+import { DomainMetricTiles } from "@/client/features/domain/components/DomainMetricTiles";
+import { DomainMovementCard } from "@/client/features/domain/components/DomainMovementCard";
+import { DomainPositionsCard } from "@/client/features/domain/components/DomainPositionsCard";
 import { SearchTabStrip } from "@/client/features/search-tabs/SearchTabStrip";
 import type { SearchTabInput } from "@/client/features/search-tabs/types";
 import { useSearchTabNavigation } from "@/client/features/search-tabs/useSearchTabNavigation";
 import {
-  formatMetric,
   getDefaultSortOrder,
   getResearchInputPath,
   toSortOrderSearchParam,
@@ -602,24 +603,21 @@ export function DomainOverviewPage({
                 {RESEARCH_SCOPE_LABELS[state.overview.scope]}
               </span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <StatCard
-                label="Estimated Organic Traffic"
-                value={formatMetric(
-                  state.overview.organicTraffic,
-                  state.overview.hasData,
-                )}
-                hint={overviewMetricsHint}
-              />
-              <StatCard
-                label="Organic Keywords"
-                value={formatMetric(
-                  state.overview.organicKeywords,
-                  state.overview.hasData,
-                )}
-                hint={overviewMetricsHint}
-              />
-            </div>
+            <DomainMetricTiles
+              overview={state.overview}
+              hint={overviewMetricsHint}
+            />
+
+            {state.overview.positions || state.overview.movement ? (
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                {state.overview.positions ? (
+                  <DomainPositionsCard positions={state.overview.positions} />
+                ) : null}
+                {state.overview.movement ? (
+                  <DomainMovementCard movement={state.overview.movement} />
+                ) : null}
+              </div>
+            ) : null}
 
             {!state.overview.hasData ? (
               <div className="alert alert-info">

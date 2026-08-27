@@ -11,11 +11,8 @@ import {
 } from "recharts";
 import type { TooltipContentProps } from "recharts";
 import { getRankConfigTrend } from "@/serverFunctions/rank-tracking";
-import {
-  formatDateTick,
-  TrendRangeToggle,
-  useChartWidth,
-} from "./RankTrackingTrendChart";
+import { formatDateTick, TrendRangeToggle } from "./RankTrackingTrendChart";
+import { useChartWidth } from "@/client/hooks/useChartWidth";
 
 const BUCKETS = [
   { key: "top3", label: "Top 3", color: "#16a34a" },

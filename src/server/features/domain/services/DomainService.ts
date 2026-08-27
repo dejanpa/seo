@@ -22,15 +22,98 @@ type MeteringOverrides = {
 /** Domain overview data is refreshed every 12 hours. */
 const DOMAIN_OVERVIEW_TTL_SECONDS = 12 * 60 * 60;
 
+// Every field below rides along on the same domain_rank_overview response, so
+// the richer overview costs no extra DataForSEO call. The fields added after
+// the first release are nullish so entries cached under the old shape still
+// parse — they simply render without the charts until the 12h TTL rolls over.
 const domainOverviewResultSchema = z.object({
   domain: z.string(),
   organicTraffic: z.number().nullable(),
   organicKeywords: z.number().nullable(),
+  /** Monthly cost (USD) of buying the organic traffic through ads. */
+  trafficValue: z.number().nullish(),
+  positions: z
+    .object({
+      top3: z.number(),
+      pos4to10: z.number(),
+      pos11to20: z.number(),
+      pos21to50: z.number(),
+      pos51to100: z.number(),
+    })
+    .nullish(),
+  movement: z
+    .object({
+      new: z.number(),
+      up: z.number(),
+      down: z.number(),
+      lost: z.number(),
+    })
+    .nullish(),
+  paidKeywords: z.number().nullish(),
+  paidTraffic: z.number().nullish(),
   backlinks: z.number().nullable(),
   referringDomains: z.number().nullable(),
   hasData: z.boolean(),
   fetchedAt: z.string(),
 });
+
+type RankMetrics = {
+  pos_1?: number;
+  pos_2_3?: number;
+  pos_4_10?: number;
+  pos_11_20?: number;
+  pos_21_30?: number;
+  pos_31_40?: number;
+  pos_41_50?: number;
+  pos_51_60?: number;
+  pos_61_70?: number;
+  pos_71_80?: number;
+  pos_81_90?: number;
+  pos_91_100?: number;
+  etv?: number;
+  count?: number;
+  estimated_paid_traffic_cost?: number;
+  is_new?: number;
+  is_up?: number;
+  is_down?: number;
+  is_lost?: number;
+};
+
+function sum(...values: Array<number | undefined>): number {
+  return values.reduce((total: number, value) => total + (value ?? 0), 0);
+}
+
+function round(value: number | undefined): number | null {
+  return value == null ? null : Math.round(value);
+}
+
+/** Groups the twelve raw position buckets into the five people reason about. */
+function toPositions(metrics: RankMetrics | undefined) {
+  if (!metrics) return null;
+  return {
+    top3: sum(metrics.pos_1, metrics.pos_2_3),
+    pos4to10: sum(metrics.pos_4_10),
+    pos11to20: sum(metrics.pos_11_20),
+    pos21to50: sum(metrics.pos_21_30, metrics.pos_31_40, metrics.pos_41_50),
+    pos51to100: sum(
+      metrics.pos_51_60,
+      metrics.pos_61_70,
+      metrics.pos_71_80,
+      metrics.pos_81_90,
+      metrics.pos_91_100,
+    ),
+  };
+}
+
+function toMovement(metrics: RankMetrics | undefined) {
+  if (!metrics) return null;
+  return {
+    new: metrics.is_new ?? 0,
+    up: metrics.is_up ?? 0,
+    down: metrics.is_down ?? 0,
+    lost: metrics.is_lost ?? 0,
+  };
+}
 
 type DomainOverviewResult = z.infer<typeof domainOverviewResultSchema> & {
   /** Requested research scope, echoed for display. */
@@ -84,20 +167,21 @@ async function getOverview(
   });
 
   const metrics = metricsResponse[0];
+  const organic: RankMetrics | undefined = metrics?.metrics?.organic;
+  const paid: RankMetrics | undefined = metrics?.metrics?.paid;
 
-  const organicTraffic =
-    metrics?.metrics?.organic?.etv != null
-      ? Math.round(metrics.metrics.organic.etv)
-      : null;
-  const organicKeywords =
-    metrics?.metrics?.organic?.count != null
-      ? Math.round(metrics.metrics.organic.count)
-      : null;
+  const organicTraffic = round(organic?.etv);
+  const organicKeywords = round(organic?.count);
 
   const stored: z.infer<typeof domainOverviewResultSchema> = {
     domain,
     organicTraffic,
     organicKeywords,
+    trafficValue: round(organic?.estimated_paid_traffic_cost),
+    positions: toPositions(organic),
+    movement: toMovement(organic),
+    paidKeywords: round(paid?.count),
+    paidTraffic: round(paid?.etv),
     backlinks: null,
     referringDomains: null,
     hasData: organicKeywords != null && organicKeywords > 0,

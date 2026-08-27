@@ -77,3 +77,31 @@ export type DomainHistoryItem = {
   search?: string;
   locationCode?: number;
 };
+
+export type DomainPositions = {
+  top3: number;
+  pos4to10: number;
+  pos11to20: number;
+  pos21to50: number;
+  pos51to100: number;
+};
+
+export type DomainMovement = {
+  new: number;
+  up: number;
+  down: number;
+  lost: number;
+};
+
+/** The overview fields the header cards render, structurally matched by the
+ * server function's return type. */
+export type DomainOverviewMetrics = {
+  organicTraffic: number | null;
+  organicKeywords: number | null;
+  trafficValue?: number | null;
+  positions?: DomainPositions | null;
+  movement?: DomainMovement | null;
+  paidKeywords?: number | null;
+  paidTraffic?: number | null;
+  hasData: boolean;
+};

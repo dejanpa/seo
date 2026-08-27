@@ -71,12 +71,10 @@ export function formatRounded(value: number | null | undefined) {
   return new Intl.NumberFormat().format(Math.round(value));
 }
 
-export function formatMetric(
-  value: number | null | undefined,
-  hasData: boolean | undefined,
-) {
-  if (!hasData) return "Not enough data";
-  return formatRounded(value);
+/** Rounded dollars, matching the `$1.23` CPC convention in the tables. */
+export function formatUsd(value: number | null | undefined) {
+  if (value == null) return "-";
+  return `$${new Intl.NumberFormat().format(Math.round(value))}`;
 }
 
 type ExportTable = { headers: string[]; rows: (string | number | null)[][] };
