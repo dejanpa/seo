@@ -29,9 +29,20 @@ export const TOOL_FEATURE_KEYS = [
   "agent",
 ] as const satisfies readonly CreditFeature[];
 
+// Capabilities that spend no credits but are still the plan's to grant. The
+// app dims and disables the surface when the key is missing, and the server
+// refuses the action behind it, so removing one from a plan actually takes the
+// capability away rather than only hiding a button.
+const CAPABILITY_FEATURE_KEYS = [
+  "agent_skills",
+  "search_console",
+  "google_analytics",
+] as const;
+
 export const PLAN_FEATURE_KEYS = [
   ...ACCESS_FEATURE_KEYS,
   ...TOOL_FEATURE_KEYS,
+  ...CAPABILITY_FEATURE_KEYS,
 ] as const;
 
 export type PlanFeatureKey = (typeof PLAN_FEATURE_KEYS)[number];
@@ -59,13 +70,16 @@ export function toolFeatureKeyFor(
   return null;
 }
 
-const ACCESS_FEATURE_LABELS: Record<string, string> = {
+const FEATURE_LABELS: Record<string, string> = {
   managed_service_access: "Service access",
   paid_plan: "Paid plan",
+  agent_skills: "Agent skills",
+  search_console: "Search Console",
+  google_analytics: "Google Analytics",
 };
 
 /** Accepts any key so callers can label feature keys read back from the
  *  database without narrowing them first. */
 export function planFeatureLabel(key: string) {
-  return ACCESS_FEATURE_LABELS[key] ?? creditFeatureLabel(key);
+  return FEATURE_LABELS[key] ?? creditFeatureLabel(key);
 }

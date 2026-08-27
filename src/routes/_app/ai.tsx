@@ -9,6 +9,7 @@ import {
   Collapsible,
   CopyButton,
 } from "@/client/features/ai-mcp/SetupControls";
+import { PlanLockedSection } from "@/client/features/billing/entitlements";
 import {
   PRODUCT_NAME,
   SKILLS_REPO,
@@ -226,71 +227,73 @@ function AiPage() {
           </div>
         </section>
 
-        <section className="mt-12">
-          <h2 className="text-base font-semibold">{PRODUCT_NAME} Skills</h2>
-          <p className="mt-1.5 text-sm text-base-content/70 leading-relaxed">
-            Skills give Codex and Claude Code reusable SEO workflows that can
-            call your {PRODUCT_NAME} MCP tools when live SERP, keyword,
-            backlink, or domain data is needed.
-          </p>
-          <div className="mt-4 divide-y divide-base-300 overflow-hidden rounded-lg border border-base-300 bg-base-200">
-            <Collapsible
-              id="skills-add"
-              title="Install with skills add"
-              subtitle="Recommended cross-agent installer"
-            >
-              <CodeBlock code={SKILLS_INSTALL} />
-              <p className="text-sm text-base-content/70">
-                You can also auto-accept each {PRODUCT_NAME} skill:
+        <PlanLockedSection featureKey="agent_skills" className="mt-12">
+          <section>
+            <h2 className="text-base font-semibold">{PRODUCT_NAME} Skills</h2>
+            <p className="mt-1.5 text-sm text-base-content/70 leading-relaxed">
+              Skills give Codex and Claude Code reusable SEO workflows that can
+              call your {PRODUCT_NAME} MCP tools when live SERP, keyword,
+              backlink, or domain data is needed.
+            </p>
+            <div className="mt-4 divide-y divide-base-300 overflow-hidden rounded-lg border border-base-300 bg-base-200">
+              <Collapsible
+                id="skills-add"
+                title="Install with skills add"
+                subtitle="Recommended cross-agent installer"
+              >
+                <CodeBlock code={SKILLS_INSTALL} />
+                <p className="text-sm text-base-content/70">
+                  You can also auto-accept each {PRODUCT_NAME} skill:
+                </p>
+                <CodeBlock code={ALL_SKILLS_INSTALL} />
+              </Collapsible>
+              <Collapsible
+                id="claude-code-skills"
+                title="Install for Claude Code"
+                subtitle="Target Claude Code only"
+                icon={<ClaudeIcon className="size-5" />}
+              >
+                <CodeBlock code={CLAUDE_CODE_SKILLS_INSTALL} />
+              </Collapsible>
+              <Collapsible
+                id="codex-skills"
+                title="Install for Codex"
+                subtitle="Target OpenAI Codex only"
+                icon={<CodexIcon className="size-5" />}
+              >
+                <CodeBlock code={CODEX_SKILLS_INSTALL} />
+              </Collapsible>
+              <Collapsible
+                id="manual-skills"
+                title="Manual GitHub install"
+                subtitle="Clone the repo and copy the skills"
+              >
+                <CodeBlock code={SKILLS_MANUAL_INSTALL} />
+              </Collapsible>
+            </div>
+            <div className="mt-5">
+              <p className="text-sm text-base-content/70 leading-relaxed">
+                Start with{" "}
+                <span className="font-mono text-base-content">
+                  /seo-project-setup
+                </span>
+                . It will ask about your project and save your goals,
+                positioning, and competitors to your project context.
               </p>
-              <CodeBlock code={ALL_SKILLS_INSTALL} />
-            </Collapsible>
-            <Collapsible
-              id="claude-code-skills"
-              title="Install for Claude Code"
-              subtitle="Target Claude Code only"
-              icon={<ClaudeIcon className="size-5" />}
-            >
-              <CodeBlock code={CLAUDE_CODE_SKILLS_INSTALL} />
-            </Collapsible>
-            <Collapsible
-              id="codex-skills"
-              title="Install for Codex"
-              subtitle="Target OpenAI Codex only"
-              icon={<CodexIcon className="size-5" />}
-            >
-              <CodeBlock code={CODEX_SKILLS_INSTALL} />
-            </Collapsible>
-            <Collapsible
-              id="manual-skills"
-              title="Manual GitHub install"
-              subtitle="Clone the repo and copy the skills"
-            >
-              <CodeBlock code={SKILLS_MANUAL_INSTALL} />
-            </Collapsible>
-          </div>
-          <div className="mt-5">
-            <p className="text-sm text-base-content/70 leading-relaxed">
-              Start with{" "}
-              <span className="font-mono text-base-content">
-                /seo-project-setup
-              </span>
-              . It will ask about your project and save your goals, positioning,
-              and competitors to your project context.
-            </p>
-            <p className="mt-4 text-xs font-medium uppercase tracking-wide text-base-content/50">
-              Available skills
-            </p>
-            <ul className="mt-2 grid gap-1.5 text-sm text-base-content/70 sm:grid-cols-2">
-              {SKILL_NAMES.map((skill) => (
-                <li key={skill} className="flex gap-2">
-                  <span className="text-base-content/35">-</span>
-                  <span>{skill}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+              <p className="mt-4 text-xs font-medium uppercase tracking-wide text-base-content/50">
+                Available skills
+              </p>
+              <ul className="mt-2 grid gap-1.5 text-sm text-base-content/70 sm:grid-cols-2">
+                {SKILL_NAMES.map((skill) => (
+                  <li key={skill} className="flex gap-2">
+                    <span className="text-base-content/35">-</span>
+                    <span>{skill}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        </PlanLockedSection>
 
         <section className="mt-12">
           <h2 className="text-base font-semibold">Available tools</h2>

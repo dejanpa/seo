@@ -9,6 +9,7 @@ import {
   roundUsdForBilling,
 } from "@/shared/billing";
 import type { CreditFeature } from "@/shared/billing-credit-features";
+import { PLAN_FEATURE_KEYS, type PlanFeatureKey } from "@/shared/plan-features";
 import { autumn, AUTUMN_TRACK_RETRY_OPTIONS } from "@/server/billing/autumn";
 import { captureServerEvent } from "@/server/lib/posthog";
 import { AppError } from "@/server/lib/errors";
@@ -86,6 +87,17 @@ export async function customerHasManagedAccess(customerId: string) {
   });
 
   return result.allowed;
+}
+
+/**
+ * Per-feature plan entitlements are a local-billing concept: under Autumn the
+ * plan lives in the vendor dashboard, so the app-side gates stay open and the
+ * surfaces behave exactly as they did before plan features existed.
+ */
+export async function listGrantedFeatureKeys(
+  _customerId: string,
+): Promise<readonly PlanFeatureKey[]> {
+  return PLAN_FEATURE_KEYS;
 }
 
 // Remaining shared usage credits — the monthly `usage_credits` balance plus the

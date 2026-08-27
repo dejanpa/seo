@@ -5,6 +5,7 @@ import {
   AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
 } from "@/shared/billing";
 import { AppError } from "@/server/lib/errors";
+import { getGrantedFeatureKeys } from "@/server/billing/entitlements";
 import {
   getRequiredEnvValue,
   isHostedServerAuthMode,
@@ -52,6 +53,14 @@ export type BillingUsageEvent = {
   value: number;
   properties: Record<string, z.infer<typeof billingUsagePropertySchema>>;
 };
+
+// Read by every surface that a plan can switch off, so it is cheap and
+// unprivileged: it only ever answers for the caller's own organization.
+export const getPlanEntitlements = createServerFn({ method: "GET" })
+  .middleware(requireAuthenticatedContext)
+  .handler(async ({ context }) => ({
+    featureKeys: [...(await getGrantedFeatureKeys(context.organizationId))],
+  }));
 
 export const getBillingUsageEvents = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)

@@ -13,6 +13,7 @@ import {
   type GscSiteSelection,
 } from "@/client/features/gsc/SitePicker";
 import { startGoogleLink } from "@/client/features/integrations/startGoogleLink";
+import { PlanLockedSection } from "@/client/features/billing/entitlements";
 import {
   disconnectGsc,
   getGscConnection,
@@ -27,6 +28,14 @@ export function SearchConsoleConnectionCard({
 }: {
   projectId: string;
 }) {
+  return (
+    <PlanLockedSection featureKey="search_console">
+      <SearchConsoleCard projectId={projectId} />
+    </PlanLockedSection>
+  );
+}
+
+function SearchConsoleCard({ projectId }: { projectId: string }) {
   const hosted = isHostedClientAuthMode();
   const queryClient = useQueryClient();
   const [picking, setPicking] = React.useState(false);

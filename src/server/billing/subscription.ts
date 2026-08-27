@@ -1,4 +1,5 @@
 import type { CreditFeature } from "@/shared/billing-credit-features";
+import type { PlanFeatureKey } from "@/shared/plan-features";
 import { isLocalBillingProvider } from "@/server/billing/provider";
 import type {
   BillingCustomerContext,
@@ -42,6 +43,12 @@ export async function customerHasPaidPlan(
 
 export async function customerHasManagedAccess(customerId: string) {
   return (await provider()).customerHasManagedAccess(customerId);
+}
+
+export async function listGrantedFeatureKeys(
+  customerId: string,
+): Promise<readonly PlanFeatureKey[]> {
+  return (await provider()).listGrantedFeatureKeys(customerId);
 }
 
 export async function assertUsageCreditsAvailable(

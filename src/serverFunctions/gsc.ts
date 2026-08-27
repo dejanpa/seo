@@ -15,6 +15,7 @@ import {
   requireAuthenticatedContext,
   requireProjectContext,
 } from "@/serverFunctions/middleware";
+import { assertPlanFeature } from "@/server/billing/entitlements";
 
 const projectScopedSchema = z.object({ projectId: z.string().min(1) });
 const setSiteSchema = projectScopedSchema.extend({
@@ -59,6 +60,7 @@ export const listGscSites = createServerFn({ method: "POST" })
   .middleware(requireProjectContext)
   .validator(projectScopedSchema)
   .handler(async ({ context }) => {
+    await assertPlanFeature(context.organizationId, "search_console");
     const [siteList, connection] = await Promise.all([
       GscService.listSitesForUserWithGrantStatus(context.userId),
       GscService.getConnection(context.projectId),
@@ -92,6 +94,7 @@ export const setGscSite = createServerFn({ method: "POST" })
   .middleware(requireProjectContext)
   .validator(setSiteSchema)
   .handler(async ({ data, context }) => {
+    await assertPlanFeature(context.organizationId, "search_console");
     const connection = await GscService.setSite({
       projectId: context.projectId,
       organizationId: context.organizationId,

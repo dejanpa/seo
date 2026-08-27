@@ -54,6 +54,7 @@ const SEED_PLANS: SeedPlan[] = [
       "managed_service_access",
       "keyword_research",
       "domain_overview",
+      "search_console",
     ],
   },
   {
@@ -74,6 +75,9 @@ const SEED_PLANS: SeedPlan[] = [
       "rank_tracking",
       "local_seo",
       "agent",
+      "agent_skills",
+      "search_console",
+      "google_analytics",
     ],
   },
   {
@@ -84,7 +88,14 @@ const SEED_PLANS: SeedPlan[] = [
     priceUsdCents: 19900,
     sortOrder: 2,
     isDefault: false,
-    featureKeys: ["managed_service_access", "paid_plan", ...TOOL_FEATURE_KEYS],
+    featureKeys: [
+      "managed_service_access",
+      "paid_plan",
+      ...TOOL_FEATURE_KEYS,
+      "agent_skills",
+      "search_console",
+      "google_analytics",
+    ],
   },
 ];
 

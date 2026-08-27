@@ -20,18 +20,31 @@ import {
   setGa4Property,
 } from "@/serverFunctions/ga4";
 import { GA4_SELF_HOSTED_SETUP_DOCS_URL } from "@/shared/ga4";
+import { PlanLockedSection } from "@/client/features/billing/entitlements";
 
-export function GoogleAnalyticsConnectionCard({
-  projectId,
-  onDismiss,
-  dismissing = false,
-  heading,
-}: {
+type GoogleAnalyticsConnectionCardProps = {
   projectId: string;
   onDismiss?: () => void;
   dismissing?: boolean;
   heading?: React.ReactNode;
-}) {
+};
+
+export function GoogleAnalyticsConnectionCard(
+  props: GoogleAnalyticsConnectionCardProps,
+) {
+  return (
+    <PlanLockedSection featureKey="google_analytics">
+      <GoogleAnalyticsCard {...props} />
+    </PlanLockedSection>
+  );
+}
+
+function GoogleAnalyticsCard({
+  projectId,
+  onDismiss,
+  dismissing = false,
+  heading,
+}: GoogleAnalyticsConnectionCardProps) {
   const hosted = isHostedClientAuthMode();
   const queryClient = useQueryClient();
   const [picking, setPicking] = React.useState(false);

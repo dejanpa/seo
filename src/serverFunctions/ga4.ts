@@ -18,6 +18,7 @@ import {
   requireAuthenticatedContext,
   requireProjectContext,
 } from "@/serverFunctions/middleware";
+import { assertPlanFeature } from "@/server/billing/entitlements";
 
 const projectScopedSchema = z.object({ projectId: z.string().min(1) });
 const setPropertySchema = projectScopedSchema.extend({
@@ -131,6 +132,7 @@ export const listGa4Properties = createServerFn({ method: "POST" })
   .middleware(requireProjectContext)
   .validator(projectScopedSchema)
   .handler(async ({ context }) => {
+    await assertPlanFeature(context.organizationId, "google_analytics");
     const [propertyList, connection] = await Promise.all([
       Ga4Service.listPropertiesForUserWithGrantStatus(context.userId),
       Ga4Service.getConnection(context.projectId),
@@ -152,6 +154,7 @@ export const setGa4Property = createServerFn({ method: "POST" })
   .middleware(requireProjectContext)
   .validator(setPropertySchema)
   .handler(async ({ data, context }) => {
+    await assertPlanFeature(context.organizationId, "google_analytics");
     const connection = await Ga4Service.setProperty({
       projectId: context.projectId,
       organizationId: context.organizationId,

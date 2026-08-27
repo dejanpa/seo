@@ -5,6 +5,7 @@ import {
 } from "@/shared/billing";
 import type { CreditFeature } from "@/shared/billing-credit-features";
 import {
+  PLAN_FEATURE_KEYS,
   planFeatureLabel,
   toolFeatureKeyFor,
   type PlanFeatureKey,
@@ -109,6 +110,19 @@ export async function customerHasPaidPlan(
 
 export async function customerHasManagedAccess(customerId: string) {
   return holdsFeature(await loadAccount(customerId), "managed_service_access");
+}
+
+/**
+ * Everything this organization's plan grants, for the surfaces that decide what
+ * to show rather than what to charge. Driven from PLAN_FEATURE_KEYS so a stale
+ * row in plan_features cannot widen the answer.
+ */
+export async function listGrantedFeatureKeys(
+  customerId: string,
+): Promise<readonly PlanFeatureKey[]> {
+  const account = await loadAccount(customerId);
+  if (account.status !== "active") return [];
+  return PLAN_FEATURE_KEYS.filter((key) => account.features.has(key));
 }
 
 /**

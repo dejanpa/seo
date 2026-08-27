@@ -1,4 +1,5 @@
 import type { CreditFeature } from "@/shared/billing-credit-features";
+import type { PlanFeatureKey } from "@/shared/plan-features";
 import type { EnsuredUserContext } from "@/middleware/ensure-user/types";
 
 // Leaf module so both billing providers and the dispatcher can share these
@@ -24,6 +25,9 @@ export type BillingProviderApi = {
     opts?: { retryDenied?: boolean },
   ): Promise<boolean>;
   customerHasManagedAccess(customerId: string): Promise<boolean>;
+  listGrantedFeatureKeys(
+    customerId: string,
+  ): Promise<readonly PlanFeatureKey[]>;
   assertUsageCreditsAvailable(
     customerId: string,
     creditFeature?: CreditFeature,
