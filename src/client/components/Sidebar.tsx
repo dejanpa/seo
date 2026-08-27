@@ -241,12 +241,14 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="shrink-0 border-t border-base-300 px-2 py-2 pb-safe">
-      <SidebarNavLink
-        icon={BookOpen}
-        label="Priručnik"
-        onNavigate={onNavigate}
-        linkProps={{ to: "/help" }}
-      />
+      {viewerAdmin.data?.isAdmin ? (
+        <SidebarNavLink
+          icon={BookOpen}
+          label="Priručnik"
+          onNavigate={onNavigate}
+          linkProps={{ to: "/help" }}
+        />
+      ) : null}
 
       <SidebarNavLink
         icon={CircleHelp}
