@@ -27,6 +27,7 @@ export {
 export {
   fetchBulkKeywordDifficulty,
   fetchDomainRankOverview,
+  fetchHistoricalKeywordData,
   fetchKeywordIdeas,
   fetchKeywordOverview,
   fetchKeywordSuggestions,

@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   DataforseoLabsGoogleBulkKeywordDifficultyLiveRequestInfo,
   DataforseoLabsGoogleDomainRankOverviewLiveRequestInfo,
+  DataforseoLabsGoogleHistoricalKeywordDataLiveRequestInfo,
   DataforseoLabsGoogleKeywordIdeasLiveRequestInfo,
   DataforseoLabsGoogleKeywordOverviewLiveRequestInfo,
   DataforseoLabsGoogleKeywordSuggestionsLiveRequestInfo,
@@ -20,6 +21,7 @@ import {
   type KeywordDataInfo,
 } from "dataforseo-client";
 import { labsApi } from "@/server/lib/dataforseo/core";
+import type { KeywordHistoryPoint } from "@/types/keywords";
 import {
   assertOk,
   buildTaskBilling,
@@ -345,6 +347,47 @@ export async function fetchBulkKeywordDifficulty(input: {
   const task = assertOk(response);
   return {
     data: task.result?.[0]?.items ?? [],
+    billing: buildTaskBilling(task),
+  };
+}
+
+/**
+ * How volume, CPC and competition looked in previous months.
+ *
+ * The research rows already carry monthly volume, so the reason to buy this is
+ * the other two series: CPC and competition say whether the commercial
+ * pressure on a term is building, which volume alone cannot.
+ */
+export async function fetchHistoricalKeywordData(input: {
+  keyword: string;
+  locationCode: number;
+  languageCode: string;
+}): Promise<DataforseoApiResponse<KeywordHistoryPoint[]>> {
+  const response = await labsApi().googleHistoricalKeywordDataLive([
+    new DataforseoLabsGoogleHistoricalKeywordDataLiveRequestInfo({
+      keywords: [input.keyword],
+      location_code: input.locationCode,
+      language_code: input.languageCode,
+    }),
+  ]);
+  const task = assertOk(response);
+
+  const history = task.result?.[0]?.items?.[0]?.history ?? [];
+  return {
+    data: history
+      .flatMap((entry) => {
+        if (entry.year == null || entry.month == null) return [];
+        return [
+          {
+            year: entry.year,
+            month: entry.month,
+            searchVolume: entry.keyword_info?.search_volume ?? null,
+            cpc: entry.keyword_info?.cpc ?? null,
+            competition: entry.keyword_info?.competition ?? null,
+          },
+        ];
+      })
+      .toSorted((a, b) => a.year * 100 + a.month - (b.year * 100 + b.month)),
     billing: buildTaskBilling(task),
   };
 }

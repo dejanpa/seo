@@ -185,6 +185,13 @@ export const keywordTrendsSchema = z.object({
   languageCode: z.string().min(2).max(8).optional(),
 });
 
+export const keywordHistorySchema = z.object({
+  projectId: z.string().min(1),
+  keyword: z.string().min(1),
+  locationCode: z.number().int().positive().optional(),
+  languageCode: z.string().min(2).max(8).optional(),
+});
+
 export const keywordAutocompleteSchema = z.object({
   projectId: z.string().min(1),
   keyword: z.string().min(1),

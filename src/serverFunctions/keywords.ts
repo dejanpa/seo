@@ -9,6 +9,7 @@ import {
   refreshSavedKeywordMetricsSchema,
   keywordAudienceSchema,
   keywordAutocompleteSchema,
+  keywordHistorySchema,
   keywordTrendsSchema,
   serpAnalysisSchema,
   updateSavedKeywordTagSchema,
@@ -180,6 +181,28 @@ export const getKeywordAutocomplete = createServerFn({ method: "POST" })
     }
 
     return KeywordResearchService.getKeywordAutocomplete(
+      {
+        ...data,
+        ...resolveMarket(data, context.project),
+        projectId: context.projectId,
+      },
+      context,
+    );
+  });
+
+export const getKeywordHistory = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(keywordHistorySchema)
+  .handler(async ({ data, context }) => {
+    if (shouldUseKeywordE2eFixtures()) {
+      const fixtures = await getKeywordE2eFixtures();
+      return {
+        requestedKeyword: data.keyword,
+        history: fixtures.getKeywordHistoryFixture(),
+      };
+    }
+
+    return KeywordResearchService.getKeywordHistory(
       {
         ...data,
         ...resolveMarket(data, context.project),

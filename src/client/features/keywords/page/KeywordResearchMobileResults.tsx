@@ -17,6 +17,7 @@ import { captureClientEvent } from "@/client/lib/posthog";
 import {
   KeywordAudienceCard,
   KeywordAutocompleteCard,
+  KeywordHistoryCard,
   KeywordTrendsCard,
   SerpAnalysisCard,
 } from "@/client/features/keywords/components";
@@ -73,6 +74,11 @@ export function KeywordResearchMobileResults({ controller }: Props) {
             panel={controller.trends}
             keyword={controller.activeSerpKeyword}
           />
+          <KeywordHistoryCard
+            panel={controller.keywordHistory}
+            keyword={controller.activeSerpKeyword}
+          />
+
           <KeywordAudienceCard
             panel={controller.audience}
             keyword={controller.activeSerpKeyword}

@@ -28,6 +28,16 @@ export type GoogleTrendsData = {
   risingQueries: TrendsRelatedQuery[];
 };
 
+/** One month of a keyword's history. Volume repeats what the research row
+ * already carries; CPC and competition are what this endpoint adds. */
+export type KeywordHistoryPoint = {
+  year: number;
+  month: number;
+  searchVolume: number | null;
+  cpc: number | null;
+  competition: number | null;
+};
+
 /** Relative popularity of a keyword in one subregion, 0-100. */
 export type RegionInterest = { region: string; value: number };
 

@@ -157,6 +157,11 @@ export function createDataforseoClient(customer: BillingCustomerContext) {
         (s) => s.fetchAutocomplete,
         "keyword_research",
       ),
+      history: meter(
+        customer,
+        (s) => s.fetchHistoricalKeywordData,
+        "keyword_research",
+      ),
     },
     domain: {
       rankOverview: meter(

@@ -1,6 +1,7 @@
 import type {
   GoogleTrendsData,
   KeywordAudienceData,
+  KeywordHistoryPoint,
   KeywordResearchRow,
 } from "@/types/keywords";
 import type { ResolvedResearchKeywordsInput } from "@/types/schemas/keywords";
@@ -136,4 +137,17 @@ export function getKeywordAutocompleteFixture(keyword: string) {
     { suggestion: `${keyword} ai`, relevance: 1450 },
     { suggestion: `${keyword} template excel`, relevance: 1200 },
   ];
+}
+
+export function getKeywordHistoryFixture(): KeywordHistoryPoint[] {
+  return Array.from({ length: 24 }, (_, index) => {
+    const zeroBased = 2024 * 12 + 3 + index;
+    return {
+      year: Math.floor(zeroBased / 12),
+      month: (zeroBased % 12) + 1,
+      searchVolume: 18_000 + Math.round(6000 * Math.sin(index / 2)),
+      cpc: Number((9 + index * 0.12).toFixed(2)),
+      competition: Number((0.3 + (index % 8) * 0.05).toFixed(2)),
+    };
+  });
 }

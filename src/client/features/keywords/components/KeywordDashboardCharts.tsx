@@ -38,23 +38,39 @@ import {
  * The dashboard panels that need a real plotting engine.
  *
  * Everything drawable with a div — the tiles and the ranked bars — already is,
- * so this module is the only thing that pulls in recharts and KeywordDashboard
- * loads it on demand. A keyword search that returns nothing never pays for it.
+ * so the chart components stay together in this one lazily loaded module.
+ *
+ * A panel with nothing to say is omitted rather than drawn empty. Not every
+ * source carries every field: Google-Ads-served markets return no difficulty
+ * at all, and a domain's ranked keywords carry no intent, so an intent donut
+ * reading "100% unknown" would be a worse answer than no donut.
  */
 export default function KeywordDashboardCharts({
   analytics,
 }: {
   analytics: KeywordAnalytics;
 }) {
+  const hasIntent = analytics.intentSplit.some(
+    (slice) => slice.intent !== "unknown",
+  );
+
   return (
     <div className="grid gap-3 xl:grid-cols-2">
-      <DemandPanel
-        monthly={analytics.monthly}
-        partialMonths={analytics.partialMonths}
-      />
-      <OpportunityPanel scatter={analytics.scatter} />
-      <IntentPanel split={analytics.intentSplit} count={analytics.count} />
-      <DifficultyPanel bands={analytics.difficultyBands} />
+      {analytics.monthly.length >= 2 ? (
+        <DemandPanel
+          monthly={analytics.monthly}
+          partialMonths={analytics.partialMonths}
+        />
+      ) : null}
+      {analytics.scatter.length > 0 ? (
+        <OpportunityPanel scatter={analytics.scatter} />
+      ) : null}
+      {hasIntent ? (
+        <IntentPanel split={analytics.intentSplit} count={analytics.count} />
+      ) : null}
+      {analytics.difficultyBands.length > 0 ? (
+        <DifficultyPanel bands={analytics.difficultyBands} />
+      ) : null}
     </div>
   );
 }

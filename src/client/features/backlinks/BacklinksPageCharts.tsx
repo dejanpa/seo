@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useChartWidth } from "@/client/hooks/useChartWidth";
 import {
   CartesianGrid,
   Legend,
@@ -20,7 +20,7 @@ export function BacklinksTrendChart({
 }: {
   data: BacklinksOverviewData["trends"];
 }) {
-  const { containerRef, chartWidth } = useChartWidth();
+  const { containerRef, width } = useChartWidth();
 
   if (data.length === 0) {
     return <EmptyChartState />;
@@ -32,9 +32,9 @@ export function BacklinksTrendChart({
       className="h-56 min-w-0"
       aria-label="Backlink trend chart"
     >
-      {chartWidth > 0 ? (
+      {width > 0 ? (
         <LineChart
-          width={chartWidth}
+          width={width}
           height={224}
           data={data}
           margin={{ left: 8, right: 8, top: 8, bottom: 0 }}
@@ -90,7 +90,7 @@ export function BacklinksNewLostChart({
 }: {
   data: BacklinksOverviewData["newLostTrends"];
 }) {
-  const { containerRef, chartWidth } = useChartWidth();
+  const { containerRef, width } = useChartWidth();
 
   if (data.length === 0) {
     return <EmptyChartState />;
@@ -102,9 +102,9 @@ export function BacklinksNewLostChart({
       className="h-56 min-w-0"
       aria-label="New and lost backlinks chart"
     >
-      {chartWidth > 0 ? (
+      {width > 0 ? (
         <LineChart
-          width={chartWidth}
+          width={width}
           height={224}
           data={data}
           margin={{ left: 8, right: 8, top: 8, bottom: 0 }}
@@ -145,33 +145,6 @@ export function BacklinksNewLostChart({
       ) : null}
     </div>
   );
-}
-
-function useChartWidth() {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [chartWidth, setChartWidth] = useState(0);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-
-    const updateWidth = () => {
-      setChartWidth(container.clientWidth);
-    };
-
-    updateWidth();
-
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(container);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  return { containerRef, chartWidth };
 }
 
 function EmptyChartState() {

@@ -97,11 +97,15 @@ function Content({
           subtitle="Where the demand is concentrated"
           items={analytics.topByVolume}
         />
-        <RankedPanel
-          title="Easiest wins"
-          subtitle="High demand for the least difficulty"
-          items={analytics.easiestWins}
-        />
+        {/* Needs a difficulty on every candidate, which Google-Ads-served
+            markets never return. */}
+        {analytics.easiestWins.length > 0 ? (
+          <RankedPanel
+            title="Easiest wins"
+            subtitle="High demand for the least difficulty"
+            items={analytics.easiestWins}
+          />
+        ) : null}
       </div>
     </>
   );

@@ -19,6 +19,7 @@ import {
   AreaTrendChart,
   KeywordAudienceCard,
   KeywordAutocompleteCard,
+  KeywordHistoryCard,
   KeywordTrendsCard,
   OverviewStats,
   SerpAnalysisCard,
@@ -362,6 +363,11 @@ function DesktopSerpPanel({ controller }: Props) {
 
       <KeywordTrendsCard
         panel={controller.trends}
+        keyword={controller.activeSerpKeyword}
+      />
+
+      <KeywordHistoryCard
+        panel={controller.keywordHistory}
         keyword={controller.activeSerpKeyword}
       />
 

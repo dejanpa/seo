@@ -12,6 +12,7 @@ import { useLazyKeywordPanel } from "@/client/features/keywords/hooks/useLazyKey
 import {
   getKeywordAudience,
   getKeywordAutocomplete,
+  getKeywordHistory,
   getKeywordTrends,
 } from "@/serverFunctions/keywords";
 import { captureClientEvent } from "@/client/lib/posthog";
@@ -115,6 +116,21 @@ export function useKeywordResearchController(
         data: { projectId: input.projectId, keyword, locationCode },
       }),
     errorMessage: "Failed to load audience data.",
+  });
+
+  const keywordHistory = useLazyKeywordPanel({
+    queryKey: [
+      "keywordHistory",
+      input.projectId,
+      activeSerpKeyword,
+      locationCode,
+    ],
+    keyword: activeSerpKeyword,
+    fetch: (keyword) =>
+      getKeywordHistory({
+        data: { projectId: input.projectId, keyword, locationCode },
+      }),
+    errorMessage: "Failed to load keyword history.",
   });
 
   const autocomplete = useLazyKeywordPanel({
@@ -322,6 +338,7 @@ export function useKeywordResearchController(
     serpQuery,
     serpResults,
     trends,
+    keywordHistory,
     audience,
     autocomplete,
     setMobileTab: uiState.setMobileTab,
