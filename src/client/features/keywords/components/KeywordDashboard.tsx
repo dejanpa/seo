@@ -41,6 +41,7 @@ export function KeywordDashboard({
         <button
           type="button"
           className="btn btn-ghost btn-sm gap-1.5 px-2"
+          data-print-hide
           aria-expanded={open}
           onClick={() => onOpenChange(!open)}
         >

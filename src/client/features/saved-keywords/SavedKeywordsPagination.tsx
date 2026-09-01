@@ -23,7 +23,10 @@ export function SavedKeywordsPagination({
   const end = Math.min(totalCount, page * pageSize);
 
   return (
-    <div className="flex flex-col gap-3 border-t border-base-300 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      data-print-hide
+      className="flex flex-col gap-3 border-t border-base-300 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+    >
       <div className="flex items-center gap-2 text-sm tabular-nums text-base-content/70">
         <span>
           {start.toLocaleString()}-{end.toLocaleString()} of{" "}

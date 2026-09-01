@@ -7,6 +7,7 @@ import { useKeywordResearchController } from "@/client/features/keywords/state/u
 import type { KeywordResearchControllerInput } from "@/client/features/keywords/state/useKeywordResearchController";
 import type { KeywordControlsValues } from "@/client/features/keywords/hooks/useKeywordControlsForm";
 import { parseKeywordInput } from "@/client/features/keywords/state/keywordControllerActions";
+import { LOCATION_OPTIONS } from "@/shared/keyword-locations";
 import {
   useKeywordSearchParams,
   useResolvedKeywordLocation,
@@ -181,14 +182,22 @@ export function KeywordResearchPage(input: Props) {
       <div className="mx-auto flex max-w-7xl flex-col gap-5">
         <div>
           <h1 className="text-2xl font-semibold">Keyword Research</h1>
-          <p className="text-sm text-base-content/70">
+          <p className="text-sm text-base-content/70 print:hidden">
             Discover keyword ideas, search demand, and ranking opportunities.
           </p>
+          {/* The search controls do not print, so on paper this line is the
+              only record of what the report is actually about. */}
+          <PrintHeader
+            keyword={controller.searchedKeyword}
+            locationCode={displayedLocationCode}
+          />
         </div>
 
-        <KeywordResearchSearchBar controller={controller} />
+        <div data-print-hide>
+          <KeywordResearchSearchBar controller={controller} />
+        </div>
         {controller.hasSearched ? (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" data-print-hide>
             <button
               type="button"
               data-testid="keyword-research-recent-searches"
@@ -215,6 +224,26 @@ export function KeywordResearchPage(input: Props) {
         <KeywordSaveDialog controller={controller} />
       </div>
     </div>
+  );
+}
+
+function PrintHeader({
+  keyword,
+  locationCode,
+}: {
+  keyword: string;
+  locationCode: number;
+}) {
+  if (!keyword) return null;
+
+  const market = LOCATION_OPTIONS.find(
+    (option) => option.code === locationCode,
+  );
+  return (
+    <p className="hidden text-sm text-base-content/70 print:block">
+      {keyword}
+      {market ? ` · ${market.label}` : ""} · {new Date().toLocaleDateString()}
+    </p>
   );
 }
 

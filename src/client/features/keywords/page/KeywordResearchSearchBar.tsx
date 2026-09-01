@@ -10,6 +10,7 @@ import {
 } from "@/client/features/keywords/keywordResearchTypes";
 import { isLabsLocationCode } from "@/client/features/keywords/locations";
 import { LocationSelect } from "@/client/components/LocationSelect";
+import { describeSearchCost } from "@/client/features/keywords/searchCostPlan";
 import type { KeywordResearchControllerState } from "./types";
 
 type Props = {
@@ -129,6 +130,20 @@ export function KeywordResearchSearchBar({ controller }: Props) {
             ) : null;
           }}
         </controlsForm.Field>
+        <controlsForm.Subscribe
+          selector={(state) => ({
+            mode: state.values.mode,
+            locationCode: state.values.locationCode,
+            clickstream: state.values.clickstream,
+          })}
+        >
+          {(values) => (
+            <p className="text-xs text-base-content/55">
+              {describeSearchCost(values).summary} The panels beside the results
+              cost extra and stay closed until you open them.
+            </p>
+          )}
+        </controlsForm.Subscribe>
         <controlsForm.Field name="locationCode">
           {(locationField) =>
             isLabsLocationCode(locationField.state.value) ? (
@@ -165,8 +180,10 @@ export function KeywordResearchSearchBar({ controller }: Props) {
                 <Info className="mt-0.5 size-4 shrink-0 text-info" />
                 <span>
                   Keyword data for this country comes from Google Ads — search
-                  volume, CPC, and trends are available, but difficulty and
-                  intent are not.
+                  volume, CPC, and trends are available. Difficulty is not:
+                  DataForSEO Labs, which scores it, does not cover this country.
+                  Intent is filled in separately where the country's language
+                  supports it.
                 </span>
               </div>
             )

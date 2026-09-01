@@ -3,6 +3,7 @@ import {
   Download,
   FileDown,
   Loader2,
+  Printer,
   RefreshCw,
   Sheet,
 } from "lucide-react";
@@ -28,13 +29,13 @@ export function SavedKeywordsHeader({
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <h1 className="text-2xl font-semibold">Saved Keywords</h1>
-        <p className="text-sm text-base-content/70">
+        <p className="text-sm text-base-content/70 print:hidden">
           Save keyword ideas from research, organize them with tags, and revisit
           when you&apos;re ready to act.
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" data-print-hide>
         <div className="dropdown dropdown-end">
           <button
             type="button"
@@ -107,6 +108,12 @@ export function SavedKeywordsHeader({
               <button type="button" onClick={onExportCsv} disabled={disabled}>
                 <FileDown className="size-4" />
                 Export CSV
+              </button>
+            </li>
+            <li>
+              <button type="button" onClick={() => window.print()}>
+                <Printer className="size-4" />
+                Save as PDF
               </button>
             </li>
           </ul>

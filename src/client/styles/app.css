@@ -370,3 +370,50 @@ html[data-theme="openseo-dark"] .alert-success {
 html[data-theme="openseo-dark"] .alert-error {
   @apply border-error/60 bg-error/20;
 }
+
+/* Printing, which is also how a report leaves the app as a PDF: every browser
+   offers "Save as PDF" from the print dialog, so no PDF library and — more to
+   the point — no embedded font. A bundled generator ships Latin-1 fonts by
+   default and would mangle š, ć, č, ž in Serbian keywords; printing uses the
+   page's own fonts and cannot. */
+@media print {
+  /* The shell is a fixed-height flex column with its own scroller, so without
+     this only the visible viewport reaches the paper. */
+  html,
+  body,
+  body * {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  /* Chart fills, badge tints and bar backgrounds are the content here, not
+     decoration; browsers drop them otherwise. */
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  /* A card split across a page break is unreadable. */
+  section,
+  table tr {
+    break-inside: avoid;
+  }
+}
+
+@media print {
+  /* Row selection is an on-screen affordance; on paper it is a column of
+     empty boxes. */
+  input[type="checkbox"],
+  input[type="radio"] {
+    display: none !important;
+  }
+}

@@ -31,7 +31,12 @@ export function LazyPanelCard<T>({
   children: (data: T) => ReactNode;
 }) {
   return (
-    <div className="shrink-0 overflow-hidden rounded-xl border border-base-300 bg-base-100 px-4 py-3">
+    <div
+      className="shrink-0 overflow-hidden rounded-xl border border-base-300 bg-base-100 px-4 py-3"
+      // A closed panel is a button and a price on paper — nothing a reader of
+      // the printed report can act on.
+      data-print-hide={panel.open ? undefined : true}
+    >
       <button
         type="button"
         className="flex w-full items-center gap-1.5 text-left text-sm font-semibold disabled:opacity-50"

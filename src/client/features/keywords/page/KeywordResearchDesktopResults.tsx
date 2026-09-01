@@ -3,6 +3,7 @@ import {
   Download,
   FileDown,
   Globe,
+  Printer,
   RotateCcw,
   Save,
   Sheet,
@@ -172,8 +173,9 @@ function DesktopTableCard({ controller }: Props) {
 
   return (
     <div className="flex-1 flex flex-col min-w-0 border border-base-300 rounded-xl bg-base-100 overflow-hidden">
-      <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-base-300">
+      <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-base-300 print:border-0">
         <button
+          data-print-hide
           className={`btn btn-ghost btn-sm gap-1.5 ${showFilters ? "btn-active" : ""}`}
           onClick={() => controller.setShowFilters((current) => !current)}
           title="Toggle table filters"
@@ -190,7 +192,7 @@ function DesktopTableCard({ controller }: Props) {
           {keywordCountLabel}
         </span>
         <div className="flex-1" />
-        <div className="dropdown dropdown-end">
+        <div className="dropdown dropdown-end" data-print-hide>
           <div
             tabIndex={0}
             role="button"
@@ -214,6 +216,14 @@ function DesktopTableCard({ controller }: Props) {
               <button onClick={controller.exportCsv} disabled={!canExport}>
                 <FileDown className="size-4" />
                 Export CSV
+              </button>
+            </li>
+            <li>
+              {/* The browser's print dialog is the PDF writer: it uses the
+                  page's own fonts, so Serbian keywords survive. */}
+              <button onClick={() => window.print()} disabled={!canExport}>
+                <Printer className="size-4" />
+                Save as PDF
               </button>
             </li>
           </ul>
@@ -263,13 +273,15 @@ function DesktopTableCard({ controller }: Props) {
         handleRowClick={controller.handleRowClick}
       />
       {filteredRows.length > 0 ? (
-        <KeywordResearchPagination
-          page={page}
-          pageSize={pageSize}
-          totalCount={filteredRows.length}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-        />
+        <div data-print-hide>
+          <KeywordResearchPagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={filteredRows.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
       ) : null}
     </div>
   );
@@ -279,7 +291,10 @@ function DesktopFilters({ controller }: Props) {
   const { activeFilterCount, filtersForm } = controller;
 
   return (
-    <div className="shrink-0 border-b border-base-300 bg-gradient-to-b from-base-100 to-base-200/30 px-4 py-3 space-y-3">
+    <div
+      className="shrink-0 border-b border-base-300 bg-gradient-to-b from-base-100 to-base-200/30 px-4 py-3 space-y-3"
+      data-print-hide
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold">Refine table results</p>

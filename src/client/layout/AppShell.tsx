@@ -117,7 +117,7 @@ export function AuthenticatedAppLayout({
 
   return (
     <div className="flex h-[100dvh] bg-base-200">
-      <div className="hidden shrink-0 md:block">
+      <div className="hidden shrink-0 md:block" data-print-hide>
         <Sidebar projectId={sidebarProjectId} />
       </div>
 
@@ -171,7 +171,10 @@ function MobileTopBar({
   onOpenDrawer: () => void;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-1 border-b border-base-300 bg-base-100 px-2 py-1.5 md:hidden">
+    <div
+      className="flex shrink-0 items-center gap-1 border-b border-base-300 bg-base-100 px-2 py-1.5 md:hidden"
+      data-print-hide
+    >
       <button
         type="button"
         className="btn btn-square btn-ghost btn-sm"
