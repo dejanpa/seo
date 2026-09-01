@@ -3,6 +3,7 @@ import {
   SerpApiStopCrawlOnMatchInfo,
   SerpGoogleLocalFinderLiveAdvancedRequestInfo,
   SerpGoogleMapsLiveAdvancedRequestInfo,
+  SerpGoogleAutocompleteLiveAdvancedRequestInfo,
   SerpGoogleOrganicLiveAdvancedRequestInfo,
   SerpGoogleOrganicTaskPostRequestInfo,
 } from "dataforseo-client";
@@ -17,6 +18,18 @@ import {
   type DataforseoApiResponse,
 } from "@/server/lib/dataforseo/envelope";
 import { AppError } from "@/server/lib/errors";
+
+type AutocompleteSuggestion = {
+  suggestion: string;
+  relevance: number | null;
+};
+
+const autocompleteItemSchema = z
+  .object({
+    suggestion: z.string().nullable().optional(),
+    relevance: z.number().nullable().optional(),
+  })
+  .passthrough();
 
 /** DataForSEO bills SERPs in pages of 10; depth outside 10-100 is rejected. */
 function clampSerpDepth(depth: number): number {
@@ -106,6 +119,44 @@ export async function fetchLiveSerp(input: {
     ),
     billing: buildTaskBilling(task),
   };
+}
+
+/**
+ * What Google offers to finish the query with.
+ *
+ * Autocomplete is the cheapest read on live demand there is: these are
+ * phrasings people are typing right now, which the Labs expansion endpoints —
+ * built on an indexed corpus — can lag behind.
+ */
+export async function fetchAutocomplete(input: {
+  keyword: string;
+  locationCode: number;
+  languageCode: string;
+}): Promise<DataforseoApiResponse<AutocompleteSuggestion[]>> {
+  const response = await serpApi().googleAutocompleteLiveAdvanced([
+    new SerpGoogleAutocompleteLiveAdvancedRequestInfo({
+      keyword: input.keyword,
+      location_code: input.locationCode,
+      language_code: input.languageCode,
+    }),
+  ]);
+  const task = assertOk(response);
+
+  const seen = new Set<string>();
+  const suggestions = parseTaskItems(
+    "google-autocomplete-live-advanced",
+    task,
+    autocompleteItemSchema,
+  ).flatMap((item) => {
+    // Google repeats the seed itself and, across cursor positions, the same
+    // phrase more than once.
+    const suggestion = item.suggestion?.trim();
+    if (!suggestion || seen.has(suggestion.toLowerCase())) return [];
+    seen.add(suggestion.toLowerCase());
+    return [{ suggestion, relevance: item.relevance ?? null }];
+  });
+
+  return { data: suggestions, billing: buildTaskBilling(task) };
 }
 
 export interface RankCheckResult {

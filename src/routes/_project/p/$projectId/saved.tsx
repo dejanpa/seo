@@ -20,6 +20,7 @@ import {
   DeleteSavedKeywordsModal,
   RemoveSavedKeywordsError,
 } from "@/client/features/saved-keywords/SavedKeywordsModals";
+import { SavedKeywordsOverview } from "@/client/features/saved-keywords/SavedKeywordsOverview";
 import { SavedKeywordsPagination } from "@/client/features/saved-keywords/SavedKeywordsPagination";
 import { SavedKeywordsStatus } from "@/client/features/saved-keywords/SavedKeywordsStatus";
 import { SavedKeywordsTable } from "@/client/features/saved-keywords/SavedKeywordsTable";
@@ -248,6 +249,8 @@ function SavedKeywordsPage() {
           onExportSheets={() => void exporter.exportFilteredSheets()}
           onRefreshMetrics={() => refreshMetricsMutation.mutate()}
         />
+
+        <SavedKeywordsOverview input={exporter.exportInput} />
 
         <div className="overflow-hidden rounded-lg border border-base-300 bg-base-100">
           <SavedKeywordsFilters

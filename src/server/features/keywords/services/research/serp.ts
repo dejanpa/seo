@@ -104,3 +104,60 @@ async function getSerpLiveAnalysis(
 }
 
 export const getSerpAnalysis = getSerpLiveAnalysis;
+
+const AUTOCOMPLETE_CACHE_TTL_SECONDS = 24 * 60 * 60;
+
+const autocompleteCacheSchema = z.object({
+  requestedKeyword: z.string(),
+  suggestions: z.array(
+    z.object({ suggestion: z.string(), relevance: z.number().nullable() }),
+  ),
+});
+
+type AutocompleteResult = z.infer<typeof autocompleteCacheSchema>;
+
+/** What Google offers to finish the query with. */
+export async function getKeywordAutocomplete(
+  input: {
+    projectId: string;
+    keyword: string;
+    locationCode: number;
+    languageCode: string;
+  },
+  billingCustomer: BillingCustomerContext,
+): Promise<AutocompleteResult> {
+  const keyword = normalizeKeyword(input.keyword);
+
+  const cacheKey = await buildCacheKey("kw:autocomplete", {
+    organizationId: billingCustomer.organizationId,
+    projectId: input.projectId,
+    keyword,
+    locationCode: input.locationCode,
+    languageCode: input.languageCode,
+  });
+
+  const cached = autocompleteCacheSchema.safeParse(await getCached(cacheKey));
+  if (cached.success) {
+    return cached.data;
+  }
+
+  const suggestions = await createDataforseoClient(
+    billingCustomer,
+  ).keywords.autocomplete({
+    keyword,
+    locationCode: input.locationCode,
+    languageCode: input.languageCode,
+  });
+
+  const result: AutocompleteResult = { requestedKeyword: keyword, suggestions };
+
+  waitUntil(
+    setCached(cacheKey, result, AUTOCOMPLETE_CACHE_TTL_SECONDS).catch(
+      (error) => {
+        console.error("keywords.autocomplete.cache-write failed:", error);
+      },
+    ),
+  );
+
+  return result;
+}

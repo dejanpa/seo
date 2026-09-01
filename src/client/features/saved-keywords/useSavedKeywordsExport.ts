@@ -116,6 +116,9 @@ export function useSavedKeywordsExport(params: {
   };
 
   return {
+    // Shared with the portfolio overview so it always summarizes exactly the
+    // rows a CSV export would produce.
+    exportInput,
     exporting,
     exportingSelection,
     exportFilteredCsv,

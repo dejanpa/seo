@@ -25,6 +25,7 @@ export {
 } from "@/server/lib/dataforseo/backlinks";
 
 export {
+  fetchBulkKeywordDifficulty,
   fetchDomainRankOverview,
   fetchKeywordIdeas,
   fetchKeywordOverview,
@@ -32,6 +33,7 @@ export {
   fetchRankedKeywords,
   fetchRelatedKeywords,
   fetchRelevantPages,
+  fetchSearchIntent,
   fetchSerpCompetitors,
 } from "@/server/lib/dataforseo/labs";
 
@@ -41,12 +43,19 @@ export {
 } from "@/server/lib/dataforseo/google-ads";
 
 export {
+  fetchAutocomplete,
   fetchLiveSerp,
   fetchLocalSerp,
   fetchRankCheckSerp,
   fetchRankCheckTaskResult,
   postRankCheckTasks,
 } from "@/server/lib/dataforseo/serp";
+
+export {
+  fetchDemography,
+  fetchGoogleTrends,
+  fetchSubregionInterests,
+} from "@/server/lib/dataforseo/trends";
 
 export { fetchLighthouseResult } from "@/server/lib/dataforseo/lighthouse";
 

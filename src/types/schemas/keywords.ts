@@ -178,6 +178,27 @@ export const serpAnalysisSchema = z.object({
   languageCode: z.string().min(2).max(8).optional(),
 });
 
+export const keywordTrendsSchema = z.object({
+  projectId: z.string().min(1),
+  keyword: z.string().min(1),
+  locationCode: z.number().int().positive().optional(),
+  languageCode: z.string().min(2).max(8).optional(),
+});
+
+export const keywordAutocompleteSchema = z.object({
+  projectId: z.string().min(1),
+  keyword: z.string().min(1),
+  locationCode: z.number().int().positive().optional(),
+  languageCode: z.string().min(2).max(8).optional(),
+});
+
+export const keywordAudienceSchema = z.object({
+  projectId: z.string().min(1),
+  keyword: z.string().min(1),
+  locationCode: z.number().int().positive().optional(),
+  languageCode: z.string().min(2).max(8).optional(),
+});
+
 /* ------------------------------------------------------------------ */
 /*  URL search params schema for /p/$projectId/keywords                */
 /* ------------------------------------------------------------------ */

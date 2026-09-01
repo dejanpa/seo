@@ -1,4 +1,8 @@
-import type { KeywordResearchRow } from "@/types/keywords";
+import type {
+  GoogleTrendsData,
+  KeywordAudienceData,
+  KeywordResearchRow,
+} from "@/types/keywords";
 import type { ResolvedResearchKeywordsInput } from "@/types/schemas/keywords";
 
 const MONTHLY_SEARCHES = [
@@ -70,4 +74,66 @@ export function getKeywordResearchFixture(data: ResolvedResearchKeywordsInput) {
       ],
     },
   };
+}
+
+/**
+ * Five years of weekly-ish interest with a clear seasonal shape, so the
+ * Interest over time panel exercises the same axis-thinning the real payload
+ * does without spending a Google Trends task.
+ */
+export function getKeywordTrendsFixture(keyword: string): GoogleTrendsData {
+  const interest = Array.from({ length: 60 }, (_, index) => {
+    const month = index % 12;
+    const seasonal = Math.round(45 + 35 * Math.sin((month / 12) * 2 * Math.PI));
+    return {
+      date: `${2021 + Math.floor(index / 12)}-${String(month + 1).padStart(2, "0")}-01`,
+      value: Math.min(100, seasonal + Math.floor(index / 12) * 3),
+    };
+  });
+
+  return {
+    interest,
+    topQueries: [
+      { query: `${keyword} tool`, value: 100 },
+      { query: `free ${keyword}`, value: 82 },
+      { query: `${keyword} template`, value: 54 },
+    ],
+    risingQueries: [
+      { query: `ai ${keyword}`, value: 4500 },
+      { query: `${keyword} 2026`, value: 900 },
+    ],
+  };
+}
+
+export function getKeywordAudienceFixture(): KeywordAudienceData {
+  return {
+    regions: [
+      { region: "California", value: 100 },
+      { region: "New York", value: 82 },
+      { region: "Texas", value: 61 },
+      { region: "Washington", value: 47 },
+      { region: "Illinois", value: 33 },
+    ],
+    age: [
+      { label: "18-24", value: 42 },
+      { label: "25-34", value: 100 },
+      { label: "35-44", value: 78 },
+      { label: "45-54", value: 41 },
+      { label: "55-64", value: 19 },
+    ],
+    gender: [
+      { label: "male", value: 100 },
+      { label: "female", value: 71 },
+    ],
+  };
+}
+
+export function getKeywordAutocompleteFixture(keyword: string) {
+  return [
+    { suggestion: `${keyword} tools`, relevance: 1900 },
+    { suggestion: `${keyword} free`, relevance: 1750 },
+    { suggestion: `${keyword} for beginners`, relevance: 1600 },
+    { suggestion: `${keyword} ai`, relevance: 1450 },
+    { suggestion: `${keyword} template excel`, relevance: 1200 },
+  ];
 }

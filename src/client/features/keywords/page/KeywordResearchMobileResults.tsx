@@ -14,7 +14,12 @@ import {
 } from "@/client/features/keywords/state/keywordControllerActions";
 import { exportTableToSheets } from "@/client/lib/exportToSheets";
 import { captureClientEvent } from "@/client/lib/posthog";
-import { SerpAnalysisCard } from "@/client/features/keywords/components";
+import {
+  KeywordAudienceCard,
+  KeywordAutocompleteCard,
+  KeywordTrendsCard,
+  SerpAnalysisCard,
+} from "@/client/features/keywords/components";
 import { FilterIntentSelect } from "./keywordResearchFilters";
 import { KeywordResearchDesktopTable } from "./KeywordResearchDesktopTable";
 import {
@@ -56,14 +61,26 @@ export function KeywordResearchMobileResults({ controller }: Props) {
           }`}
           onClick={() => controller.setMobileTab("serp")}
         >
-          SERP Analysis
+          Analysis
         </button>
       </div>
 
       {mobileTab === "keywords" ? (
         <MobileKeywordResults controller={controller} />
       ) : (
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 flex flex-col gap-3 overflow-y-auto p-4">
+          <KeywordTrendsCard
+            panel={controller.trends}
+            keyword={controller.activeSerpKeyword}
+          />
+          <KeywordAudienceCard
+            panel={controller.audience}
+            keyword={controller.activeSerpKeyword}
+          />
+          <KeywordAutocompleteCard
+            panel={controller.autocomplete}
+            keyword={controller.activeSerpKeyword}
+          />
           <SerpAnalysisCard
             items={controller.serpResults}
             keyword={controller.activeSerpKeyword}

@@ -129,6 +129,34 @@ export function createDataforseoClient(customer: BillingCustomerContext) {
         (s) => s.fetchAdsSearchVolume,
         "keyword_research",
       ),
+      // Backfill for fields the expansion endpoints leave empty. Called only
+      // when a row is actually missing one — see research/backfill.ts.
+      searchIntent: meter(
+        customer,
+        (s) => s.fetchSearchIntent,
+        "keyword_research",
+      ),
+      bulkKeywordDifficulty: meter(
+        customer,
+        (s) => s.fetchBulkKeywordDifficulty,
+        "keyword_research",
+      ),
+      googleTrends: meter(
+        customer,
+        (s) => s.fetchGoogleTrends,
+        "keyword_research",
+      ),
+      subregionInterests: meter(
+        customer,
+        (s) => s.fetchSubregionInterests,
+        "keyword_research",
+      ),
+      demography: meter(customer, (s) => s.fetchDemography, "keyword_research"),
+      autocomplete: meter(
+        customer,
+        (s) => s.fetchAutocomplete,
+        "keyword_research",
+      ),
     },
     domain: {
       rankOverview: meter(

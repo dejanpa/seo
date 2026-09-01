@@ -12,6 +12,7 @@ import type { KeywordResearchRow } from "@/types/keywords";
 import type { ResolvedResearchKeywordsInput } from "@/types/schemas/keywords";
 import { z } from "zod";
 import { getKeywordDataProvider } from "@/shared/keyword-locations";
+import { backfillMissingMetrics } from "./backfill";
 import { type EnrichedKeyword, normalizeKeyword } from "./helpers";
 import {
   fetchGoogleAdsResearchRows,
@@ -89,7 +90,8 @@ const cachedResultSchema = z.object({
 
 // v3: research volumes are no longer clickstream-refined, and Google-Ads-only
 // locations route to keywords_for_keywords.
-const CACHE_VERSION = 3;
+// v4: rows carry backfilled intent and difficulty (see backfill.ts).
+const CACHE_VERSION = 4;
 
 async function fetchRowsFromSource(
   source: KeywordSource,
@@ -348,8 +350,22 @@ export async function research(
             creditFeature,
           );
 
-  await setCached(cacheKey, result, CACHE_TTL.researchResult);
-  persistRows(effectiveInput, result.rows);
+  const enriched: ResearchResult = {
+    ...result,
+    rows: await backfillMissingMetrics(
+      result.rows,
+      {
+        locationCode: effectiveInput.locationCode,
+        languageCode: effectiveInput.languageCode,
+        provider,
+        creditFeature,
+      },
+      billingCustomer,
+    ),
+  };
 
-  return result;
+  await setCached(cacheKey, enriched, CACHE_TTL.researchResult);
+  persistRows(effectiveInput, enriched.rows);
+
+  return enriched;
 }

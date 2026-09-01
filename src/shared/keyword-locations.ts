@@ -52,7 +52,7 @@ export function getIsoCountryCode(locationCode: number): string {
   return (ISO_COUNTRY_OVERRIDES[shortLabel] ?? shortLabel).toLowerCase();
 }
 
-type KeywordDataProvider = "labs" | "google_ads";
+export type KeywordDataProvider = "labs" | "google_ads";
 
 type LocationOption = {
   code: number;

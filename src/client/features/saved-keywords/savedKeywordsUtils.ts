@@ -1,6 +1,7 @@
 import type { CsvValue } from "@/client/lib/csv";
 import { KEYWORD_RESEARCH_HEADERS } from "@/client/features/keywords/state/keywordControllerActions";
-import type { SavedKeywordRow } from "@/types/keywords";
+import type { KeywordAnalyticsRow } from "@/client/features/keywords/keywordAnalytics";
+import type { KeywordIntent, SavedKeywordRow } from "@/types/keywords";
 import type { GetSavedKeywordsInput } from "@/types/schemas/keywords";
 
 export const SAVED_KEYWORD_PAGE_SIZES = [50, 100, 250] as const;
@@ -47,4 +48,38 @@ export function formatSavedKeywordNumber(value: number | null | undefined) {
 export function formatSavedKeywordDate(value: string | null | undefined) {
   if (!value) return "-";
   return new Date(value).toLocaleDateString();
+}
+
+/** Saved rows store intent as free text, so it is narrowed on read. */
+export function normalizeSavedKeywordIntent(
+  value: string | null,
+): KeywordIntent {
+  switch (value) {
+    case "informational":
+    case "commercial":
+    case "transactional":
+    case "navigational":
+    case "unknown":
+      return value;
+    default:
+      return "unknown";
+  }
+}
+
+/**
+ * Saved keywords carry the same metrics the research dashboard summarizes,
+ * under different field names. Mapping here keeps one analytics implementation
+ * rather than a second shape inside it.
+ */
+export function toKeywordAnalyticsRows(
+  rows: SavedKeywordRow[],
+): KeywordAnalyticsRow[] {
+  return rows.map((row) => ({
+    keyword: row.keyword,
+    searchVolume: row.searchVolume,
+    trend: row.monthlySearches,
+    keywordDifficulty: row.keywordDifficulty,
+    cpc: row.cpc,
+    intent: normalizeSavedKeywordIntent(row.intent),
+  }));
 }

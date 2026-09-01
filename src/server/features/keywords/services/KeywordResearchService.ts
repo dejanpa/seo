@@ -1,5 +1,8 @@
 import {
   deleteSavedKeywordTag,
+  getKeywordAudience,
+  getKeywordAutocomplete,
+  getKeywordTrends,
   getSavedKeywords,
   getSerpAnalysis,
   removeSavedKeywords,
@@ -14,6 +17,9 @@ import {
 export const KeywordResearchService = {
   research,
   getSerpAnalysis,
+  getKeywordTrends,
+  getKeywordAudience,
+  getKeywordAutocomplete,
   saveKeywords,
   getSavedKeywords,
   exportSavedKeywords,

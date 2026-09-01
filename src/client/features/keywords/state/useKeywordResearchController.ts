@@ -8,6 +8,12 @@ import { useLocalKeywordFilters } from "@/client/features/keywords/hooks/useLoca
 import { useKeywordResearchData } from "@/client/features/keywords/hooks/useKeywordResearchData";
 import { useKeywordSelection } from "@/client/features/keywords/hooks/useKeywordSelection";
 import { useKeywordSerpAnalysis } from "@/client/features/keywords/hooks/useKeywordSerpAnalysis";
+import { useLazyKeywordPanel } from "@/client/features/keywords/hooks/useLazyKeywordPanel";
+import {
+  getKeywordAudience,
+  getKeywordAutocomplete,
+  getKeywordTrends,
+} from "@/serverFunctions/keywords";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { useSearchHistory } from "@/client/hooks/useSearchHistory";
 import {
@@ -78,6 +84,53 @@ export function useKeywordResearchController(
     serpLoading,
     serpError,
   } = useKeywordSerpAnalysis(input.projectId, locationCode);
+
+  // The paid side panels all follow the SERP panel's focused keyword, so a row
+  // click moves the whole column together.
+  const trends = useLazyKeywordPanel({
+    queryKey: [
+      "keywordTrends",
+      input.projectId,
+      activeSerpKeyword,
+      locationCode,
+    ],
+    keyword: activeSerpKeyword,
+    fetch: (keyword) =>
+      getKeywordTrends({
+        data: { projectId: input.projectId, keyword, locationCode },
+      }),
+    errorMessage: "Failed to load Google Trends data.",
+  });
+
+  const audience = useLazyKeywordPanel({
+    queryKey: [
+      "keywordAudience",
+      input.projectId,
+      activeSerpKeyword,
+      locationCode,
+    ],
+    keyword: activeSerpKeyword,
+    fetch: (keyword) =>
+      getKeywordAudience({
+        data: { projectId: input.projectId, keyword, locationCode },
+      }),
+    errorMessage: "Failed to load audience data.",
+  });
+
+  const autocomplete = useLazyKeywordPanel({
+    queryKey: [
+      "keywordAutocomplete",
+      input.projectId,
+      activeSerpKeyword,
+      locationCode,
+    ],
+    keyword: activeSerpKeyword,
+    fetch: (keyword) =>
+      getKeywordAutocomplete({
+        data: { projectId: input.projectId, keyword, locationCode },
+      }),
+    errorMessage: "Failed to load autocomplete suggestions.",
+  });
 
   const {
     history,
@@ -268,6 +321,9 @@ export function useKeywordResearchController(
     serpPage,
     serpQuery,
     serpResults,
+    trends,
+    audience,
+    autocomplete,
     setMobileTab: uiState.setMobileTab,
     setSelectedRows,
     setSerpPage,

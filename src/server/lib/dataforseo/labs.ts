@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  DataforseoLabsGoogleBulkKeywordDifficultyLiveRequestInfo,
   DataforseoLabsGoogleDomainRankOverviewLiveRequestInfo,
   DataforseoLabsGoogleKeywordIdeasLiveRequestInfo,
   DataforseoLabsGoogleKeywordOverviewLiveRequestInfo,
@@ -7,8 +8,11 @@ import {
   DataforseoLabsGoogleRankedKeywordsLiveRequestInfo,
   DataforseoLabsGoogleRelatedKeywordsLiveRequestInfo,
   DataforseoLabsGoogleRelevantPagesLiveRequestInfo,
+  DataforseoLabsGoogleSearchIntentLiveRequestInfo,
   DataforseoLabsGoogleSerpCompetitorsLiveRequestInfo,
+  type DataforseoLabsBulkKeywordDifficultyLiveItem,
   type DataforseoLabsDomainRankOverviewLiveItem,
+  type DataforseoLabsGoogleSearchIntentLiveItem,
   type DataforseoLabsGoogleKeywordOverviewLiveItem,
   type DataforseoLabsRelatedKeywordsLiveItem,
   type DataforseoLabsRelevantPagesLiveItem,
@@ -288,6 +292,54 @@ export async function fetchKeywordOverview(input: {
       location_code: input.locationCode,
       language_code: input.languageCode,
       include_clickstream_data: input.includeClickstreamData ?? false,
+    }),
+  ]);
+  const task = assertOk(response);
+  return {
+    data: task.result?.[0]?.items ?? [],
+    billing: buildTaskBilling(task),
+  };
+}
+
+type SearchIntentItem = DataforseoLabsGoogleSearchIntentLiveItem;
+type BulkKeywordDifficultyItem = DataforseoLabsBulkKeywordDifficultyLiveItem;
+
+/**
+ * Search intent for keywords the expansion endpoints left unlabelled.
+ *
+ * Language-only: this endpoint takes no location, which is why it can label
+ * keywords for the Google-Ads-served countries Labs does not cover at all.
+ * Callers must check the language against SEARCH_INTENT_LANGUAGES first — an
+ * unsupported one comes back as a *charged* "Invalid Field: 'language_code'".
+ */
+export async function fetchSearchIntent(input: {
+  keywords: string[];
+  languageCode: string;
+}): Promise<DataforseoApiResponse<SearchIntentItem[]>> {
+  const response = await labsApi().googleSearchIntentLive([
+    new DataforseoLabsGoogleSearchIntentLiveRequestInfo({
+      keywords: input.keywords,
+      language_code: input.languageCode,
+    }),
+  ]);
+  const task = assertOk(response);
+  return {
+    data: task.result?.[0]?.items ?? [],
+    billing: buildTaskBilling(task),
+  };
+}
+
+/** Difficulty for keywords the expansion endpoints returned without one. */
+export async function fetchBulkKeywordDifficulty(input: {
+  keywords: string[];
+  locationCode: number;
+  languageCode: string;
+}): Promise<DataforseoApiResponse<BulkKeywordDifficultyItem[]>> {
+  const response = await labsApi().googleBulkKeywordDifficultyLive([
+    new DataforseoLabsGoogleBulkKeywordDifficultyLiveRequestInfo({
+      keywords: input.keywords,
+      location_code: input.locationCode,
+      language_code: input.languageCode,
     }),
   ]);
   const task = assertOk(response);

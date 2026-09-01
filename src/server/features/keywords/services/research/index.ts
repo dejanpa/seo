@@ -1,5 +1,6 @@
 export { research } from "./research";
-export { getSerpAnalysis } from "./serp";
+export { getKeywordAutocomplete, getSerpAnalysis } from "./serp";
+export { getKeywordAudience, getKeywordTrends } from "./trends";
 export {
   saveKeywords,
   getSavedKeywords,

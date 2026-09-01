@@ -16,11 +16,12 @@ import {
 import { SortableHeader } from "@/client/components/table/SortableHeader";
 import { DifficultyBadge } from "@/client/features/domain/components/DifficultyBadge";
 import { IntentBadge } from "@/client/features/keywords/components";
-import type { KeywordIntent, SavedKeywordRow } from "@/types/keywords";
+import type { SavedKeywordRow } from "@/types/keywords";
 import { TagChip } from "./TagChip";
 import {
   formatSavedKeywordDate,
   formatSavedKeywordNumber,
+  normalizeSavedKeywordIntent,
 } from "./savedKeywordsUtils";
 
 const columnHelper = createColumnHelper<SavedKeywordRow>();
@@ -93,7 +94,7 @@ export function SavedKeywordsTable({
       columnHelper.accessor("intent", {
         header: () => "Intent",
         cell: ({ getValue }) => (
-          <IntentBadge intent={normalizeIntent(getValue())} />
+          <IntentBadge intent={normalizeSavedKeywordIntent(getValue())} />
         ),
         enableSorting: false,
       }),
@@ -137,19 +138,6 @@ export function SavedKeywordsTable({
       empty={<SavedKeywordsEmptyState hasActiveFilters={hasActiveFilters} />}
     />
   );
-}
-
-function normalizeIntent(value: string | null): KeywordIntent {
-  switch (value) {
-    case "informational":
-    case "commercial":
-    case "transactional":
-    case "navigational":
-    case "unknown":
-      return value;
-    default:
-      return "unknown";
-  }
 }
 
 function TagList({ tags }: { tags: SavedKeywordRow["tags"] }) {

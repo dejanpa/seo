@@ -17,6 +17,9 @@ import { exportTableToSheets } from "@/client/lib/exportToSheets";
 import { captureClientEvent } from "@/client/lib/posthog";
 import {
   AreaTrendChart,
+  KeywordAudienceCard,
+  KeywordAutocompleteCard,
+  KeywordTrendsCard,
   OverviewStats,
   SerpAnalysisCard,
 } from "@/client/features/keywords/components";
@@ -356,6 +359,21 @@ function DesktopSerpPanel({ controller }: Props) {
           <AreaTrendChart trend={overviewKeyword.trend} />
         </div>
       ) : null}
+
+      <KeywordTrendsCard
+        panel={controller.trends}
+        keyword={controller.activeSerpKeyword}
+      />
+
+      <KeywordAudienceCard
+        panel={controller.audience}
+        keyword={controller.activeSerpKeyword}
+      />
+
+      <KeywordAutocompleteCard
+        panel={controller.autocomplete}
+        keyword={controller.activeSerpKeyword}
+      />
 
       <div className="flex flex-col overflow-hidden border border-base-300 rounded-xl bg-base-100">
         <div className="shrink-0 px-4 py-3 border-b border-base-300">

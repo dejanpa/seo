@@ -7,6 +7,9 @@ import {
   exportSavedKeywordsSchema,
   removeSavedKeywordsSchema,
   refreshSavedKeywordMetricsSchema,
+  keywordAudienceSchema,
+  keywordAutocompleteSchema,
+  keywordTrendsSchema,
   serpAnalysisSchema,
   updateSavedKeywordTagSchema,
   updateSavedKeywordTagsSchema,
@@ -116,6 +119,72 @@ export const refreshSavedKeywordMetrics = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     return KeywordResearchService.refreshSavedKeywordMetrics(
       { projectId: context.projectId },
+      context,
+    );
+  });
+
+export const getKeywordTrends = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(keywordTrendsSchema)
+  .handler(async ({ data, context }) => {
+    if (shouldUseKeywordE2eFixtures()) {
+      const fixtures = await getKeywordE2eFixtures();
+      return {
+        requestedKeyword: data.keyword,
+        ...fixtures.getKeywordTrendsFixture(data.keyword),
+      };
+    }
+
+    return KeywordResearchService.getKeywordTrends(
+      {
+        ...data,
+        ...resolveMarket(data, context.project),
+        projectId: context.projectId,
+      },
+      context,
+    );
+  });
+
+export const getKeywordAudience = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(keywordAudienceSchema)
+  .handler(async ({ data, context }) => {
+    if (shouldUseKeywordE2eFixtures()) {
+      const fixtures = await getKeywordE2eFixtures();
+      return {
+        requestedKeyword: data.keyword,
+        ...fixtures.getKeywordAudienceFixture(),
+      };
+    }
+
+    return KeywordResearchService.getKeywordAudience(
+      {
+        ...data,
+        ...resolveMarket(data, context.project),
+        projectId: context.projectId,
+      },
+      context,
+    );
+  });
+
+export const getKeywordAutocomplete = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(keywordAutocompleteSchema)
+  .handler(async ({ data, context }) => {
+    if (shouldUseKeywordE2eFixtures()) {
+      const fixtures = await getKeywordE2eFixtures();
+      return {
+        requestedKeyword: data.keyword,
+        suggestions: fixtures.getKeywordAutocompleteFixture(data.keyword),
+      };
+    }
+
+    return KeywordResearchService.getKeywordAutocomplete(
+      {
+        ...data,
+        ...resolveMarket(data, context.project),
+        projectId: context.projectId,
+      },
       context,
     );
   });
