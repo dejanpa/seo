@@ -115,3 +115,9 @@ export function domainSortColumn(
     getToggleSortingHandler: () => onClick,
   };
 }
+
+/** Rounded dollars, matching the `$1.23` CPC convention in the tables. */
+export function formatUsd(value: number | null | undefined) {
+  if (value == null) return "-";
+  return `$${new Intl.NumberFormat().format(Math.round(value))}`;
+}

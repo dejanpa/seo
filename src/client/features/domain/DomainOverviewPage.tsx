@@ -34,8 +34,13 @@ import { MetricsTable } from "@/client/components/MetricsTable";
 import { SearchTabStrip } from "@/client/features/search-tabs/SearchTabStrip";
 import type { SearchTabInput } from "@/client/features/search-tabs/types";
 import { useSearchTabNavigation } from "@/client/features/search-tabs/useSearchTabNavigation";
+import { DomainMovementCard } from "@/client/features/domain/components/DomainMovementCard";
+import { DomainPositionsCard } from "@/client/features/domain/components/DomainPositionsCard";
+import type { DomainPositions } from "@/client/features/domain/types";
 import {
   formatMetric,
+  formatRounded,
+  formatUsd,
   getDefaultSortOrder,
   getResearchInputPath,
   toSortOrderSearchParam,
@@ -664,10 +669,22 @@ export function DomainOverviewPage({
                           state.overview.hasData,
                         ),
                       },
+                      ...overviewExtraRows(state.overview),
                     ]}
                   />
                 </div>
               </div>
+
+              {state.overview.positions || state.overview.movement ? (
+                <div className="grid grid-cols-1 gap-3 px-4 pb-4 lg:grid-cols-2">
+                  {state.overview.positions ? (
+                    <DomainPositionsCard positions={state.overview.positions} />
+                  ) : null}
+                  {state.overview.movement ? (
+                    <DomainMovementCard movement={state.overview.movement} />
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="px-4 pb-4">
                 {routeState.tab === "pages" ? (
@@ -705,4 +722,51 @@ export function DomainOverviewPage({
       </div>
     </div>
   );
+}
+
+/**
+ * Fork: the rest of the domain_rank_overview response — traffic value, top-3
+ * rankings and paid search — shown under upstream's two headline metrics.
+ * Paid rows appear only for a domain that buys ads.
+ */
+function overviewExtraRows(overview: {
+  hasData: boolean;
+  organicKeywords: number | null;
+  trafficValue?: number | null;
+  positions?: DomainPositions | null;
+  paidKeywords?: number | null;
+  paidTraffic?: number | null;
+}) {
+  if (!overview.hasData) return [];
+  const top3 = overview.positions?.top3;
+  const keywords = overview.organicKeywords;
+  const top3Share =
+    top3 != null && keywords != null && keywords > 0
+      ? ` (${Math.round((top3 / keywords) * 100)}%)`
+      : "";
+  const hasPaid =
+    (overview.paidKeywords ?? 0) > 0 || (overview.paidTraffic ?? 0) > 0;
+
+  return [
+    {
+      label: "Traffic value (monthly ad cost)",
+      value: formatUsd(overview.trafficValue),
+    },
+    {
+      label: "Keywords in the top 3",
+      value: top3 == null ? "—" : `${formatRounded(top3)}${top3Share}`,
+    },
+    ...(hasPaid
+      ? [
+          {
+            label: "Paid keywords",
+            value: formatRounded(overview.paidKeywords),
+          },
+          {
+            label: "Paid traffic",
+            value: formatRounded(overview.paidTraffic),
+          },
+        ]
+      : []),
+  ];
 }

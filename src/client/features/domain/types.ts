@@ -67,3 +67,18 @@ export type DomainControlsValues = {
 export type DomainSortMode = DomainControlsValues["sort"];
 export type SortOrder = "asc" | "desc";
 export type DomainActiveTab = "keywords" | "pages";
+
+export type DomainPositions = {
+  top3: number;
+  pos4to10: number;
+  pos11to20: number;
+  pos21to50: number;
+  pos51to100: number;
+};
+
+export type DomainMovement = {
+  new: number;
+  up: number;
+  down: number;
+  lost: number;
+};
