@@ -30,6 +30,9 @@ function classifyFetch(
   if (statusCode === 401 || statusCode === 403 || statusCode === 429) {
     return "blocked";
   }
+  // Real pages aren't served as 202 Accepted; bot challenges are (SiteGround,
+  // AWS WAF).
+  if (statusCode === 202) return "blocked";
   if (statusCode === 503) {
     const snippet = bodySnippet.toLowerCase();
     if (CHALLENGE_BODY_MARKERS.some((marker) => snippet.includes(marker))) {
