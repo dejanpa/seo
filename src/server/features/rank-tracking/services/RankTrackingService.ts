@@ -30,7 +30,7 @@ import {
   resolveMarket,
 } from "@/shared/keyword-locations";
 import { getLatestResults } from "./rankTrackingResults";
-import { toSqliteTimestamp } from "@/server/features/rank-tracking/rankTrackingTimestamps";
+import { toRankTrackingTimestamp } from "@/server/features/rank-tracking/rankTrackingTimestamps";
 import { RankTrackingKeywordService } from "./RankTrackingKeywordService";
 
 // ---------------------------------------------------------------------------
@@ -124,7 +124,7 @@ async function createConfig(input: {
     isActive: true,
     lastCheckedAt: null,
     lastSkipReason: null,
-    createdAt: toSqliteTimestamp(new Date()),
+    createdAt: toRankTrackingTimestamp(new Date()),
   };
 
   await RankTrackingRepository.createConfig(config);
