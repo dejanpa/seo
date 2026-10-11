@@ -1,4 +1,4 @@
-import { median } from "remeda";
+import { median, sort } from "remeda";
 import type { KeywordIntent, MonthlySearch } from "@/types/keywords";
 
 /**
@@ -175,14 +175,14 @@ function aggregateMonthly(rows: KeywordAnalyticsRow[]): MonthPoint[] {
     }
   }
 
-  return [...totals.entries()]
-    .toSorted((a, b) => a[0].localeCompare(b[0]))
-    .map(([key, entry]) => ({
+  return sort([...totals.entries()], (a, b) => a[0].localeCompare(b[0])).map(
+    ([key, entry]) => ({
       key,
       label: `${MONTH_LABEL.format(Date.UTC(entry.year, entry.month - 1, 1))} ${String(entry.year).slice(2)}`,
       volume: entry.volume,
       coverage: entry.coverage,
-    }));
+    }),
+  );
 }
 
 /**
@@ -261,7 +261,8 @@ function shiftMonth(key: string, delta: number): string {
 function monthOverMonthDirection(
   row: KeywordAnalyticsRow,
 ): "rising" | "falling" | null {
-  const sorted = row.trend.toSorted(
+  const sorted = sort(
+    row.trend,
     (a, b) => a.year * 100 + a.month - (b.year * 100 + b.month),
   );
   const latest = sorted.at(-1);
@@ -276,9 +277,10 @@ function intentSplit(rows: KeywordAnalyticsRow[]): IntentSlice[] {
   for (const row of rows) {
     counts.set(row.intent, (counts.get(row.intent) ?? 0) + 1);
   }
-  return [...counts.entries()]
-    .map(([intent, value]) => ({ intent, value }))
-    .toSorted((a, b) => b.value - a.value);
+  return sort(
+    [...counts.entries()].map(([intent, value]) => ({ intent, value })),
+    (a, b) => b.value - a.value,
+  );
 }
 
 function difficultyBands(rows: KeywordAnalyticsRow[]): DifficultyBand[] {
@@ -303,10 +305,10 @@ function difficultyBands(rows: KeywordAnalyticsRow[]): DifficultyBand[] {
 }
 
 function topByVolume(rows: KeywordAnalyticsRow[]): RankedKeyword[] {
-  const ranked = rows
-    .filter((row) => (row.searchVolume ?? 0) > 0)
-    .toSorted((a, b) => (b.searchVolume ?? 0) - (a.searchVolume ?? 0))
-    .slice(0, RANKED_LIMIT);
+  const ranked = sort(
+    rows.filter((row) => (row.searchVolume ?? 0) > 0),
+    (a, b) => (b.searchVolume ?? 0) - (a.searchVolume ?? 0),
+  ).slice(0, RANKED_LIMIT);
 
   const max = ranked[0]?.searchVolume ?? 1;
   return ranked.map((row) => ({
@@ -323,16 +325,15 @@ function topByVolume(rows: KeywordAnalyticsRow[]): RankedKeyword[] {
  * cannot crowd out a genuinely winnable term.
  */
 function easiestWins(rows: KeywordAnalyticsRow[]): RankedKeyword[] {
-  return rows
-    .flatMap((row) => {
-      const volume = row.searchVolume ?? 0;
-      const difficulty = row.keywordDifficulty;
-      if (volume <= 0 || difficulty === null) return [];
-      // Log volume keeps a 9M head term from dominating purely on scale.
-      const score = Math.log10(volume + 1) * (100 - difficulty);
-      return [{ row, score, volume, difficulty }];
-    })
-    .toSorted((a, b) => b.score - a.score)
+  const scored = rows.flatMap((row) => {
+    const volume = row.searchVolume ?? 0;
+    const difficulty = row.keywordDifficulty;
+    if (volume <= 0 || difficulty === null) return [];
+    // Log volume keeps a 9M head term from dominating purely on scale.
+    const score = Math.log10(volume + 1) * (100 - difficulty);
+    return [{ row, score, volume, difficulty }];
+  });
+  return sort(scored, (a, b) => b.score - a.score)
     .slice(0, RANKED_LIMIT)
     .map((entry) => ({
       keyword: entry.row.keyword,

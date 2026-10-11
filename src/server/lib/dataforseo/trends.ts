@@ -1,3 +1,4 @@
+import { sort } from "remeda";
 import { z } from "zod";
 import {
   KeywordsDataDataforseoTrendsDemographyLiveRequestInfo,
@@ -217,13 +218,14 @@ export async function fetchSubregionInterests(input: {
   const values = item.success ? (item.data.interests?.[0]?.values ?? []) : [];
 
   return {
-    data: values
-      .flatMap((entry) =>
+    data: sort(
+      values.flatMap((entry) =>
         entry.geo_name && entry.value != null && entry.value > 0
           ? [{ region: entry.geo_name, value: entry.value }]
           : [],
-      )
-      .toSorted((a, b) => b.value - a.value),
+      ),
+      (a, b) => b.value - a.value,
+    ),
     billing: buildTaskBilling(task),
   };
 }

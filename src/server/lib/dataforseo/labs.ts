@@ -1,3 +1,4 @@
+import { sortBy } from "remeda";
 import { z } from "zod";
 import {
   DataforseoLabsGoogleBulkKeywordDifficultyLiveRequestInfo,
@@ -374,8 +375,8 @@ export async function fetchHistoricalKeywordData(input: {
 
   const history = task.result?.[0]?.items?.[0]?.history ?? [];
   return {
-    data: history
-      .flatMap((entry) => {
+    data: sortBy(
+      history.flatMap((entry) => {
         if (entry.year == null || entry.month == null) return [];
         return [
           {
@@ -386,8 +387,9 @@ export async function fetchHistoricalKeywordData(input: {
             competition: entry.keyword_info?.competition ?? null,
           },
         ];
-      })
-      .toSorted((a, b) => a.year * 100 + a.month - (b.year * 100 + b.month)),
+      }),
+      (item) => item.year * 100 + item.month,
+    ),
     billing: buildTaskBilling(task),
   };
 }
