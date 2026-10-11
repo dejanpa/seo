@@ -26,6 +26,7 @@ import { normalizeAuthRedirect } from "@/lib/auth-redirect";
 import { useCanManageBilling } from "@/client/features/team/organizationQueries";
 import { SUPPORT_EMAIL } from "@/client/lib/support";
 import { Button } from "@/client/components/ui/button";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 const PLAN_FEATURES = [
   "Keyword research, backlinks, rank tracking, and site audits",
@@ -202,42 +203,22 @@ function SubscribePage() {
       <div className="space-y-3 text-center">
         <img
           src="/transparent-logo.png"
-          alt="OpenSEO"
+          alt={PRODUCT_NAME}
           className="mx-auto size-10 rounded-lg"
         />
         <h1 className="text-xl font-semibold">
           {isUpgradeFlow
             ? "Upgrade your plan"
             : firstName
-              ? `Welcome to OpenSEO, ${firstName}!`
-              : "Welcome to OpenSEO!"}
+              ? `Welcome to ${PRODUCT_NAME}, ${firstName}!`
+              : `Welcome to ${PRODUCT_NAME}!`}
         </h1>
         <p className="text-sm text-muted-foreground">
           SEO on your terms. All your SEO tools in one place at a fair price.
         </p>
       </div>
 
-      <PlanOfferCard
-        offer={BASE_PLAN_OFFER}
-        features={PLAN_FEATURES}
-        afterFeatures={
-          /* Sub-bullet of the Usage Credits line above. */
-          <li className="-mt-1 pl-6 text-xs">
-            <a
-              className="text-muted-foreground underline decoration-muted-foreground/40 decoration-dotted underline-offset-4 transition-colors hover:text-foreground"
-              href="https://openseo.so/pricing"
-              target="_blank"
-              rel="noreferrer"
-              onClick={() =>
-                captureClientEvent("billing:pricing_estimator_click")
-              }
-            >
-              How far do usage credits go?{" "}
-              <span aria-hidden="true">&#8599;</span>
-            </a>
-          </li>
-        }
-      >
+      <PlanOfferCard offer={BASE_PLAN_OFFER} features={PLAN_FEATURES}>
         {error ? (
           <p role="alert" className="text-sm text-destructive">
             {error}

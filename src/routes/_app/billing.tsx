@@ -42,6 +42,7 @@ import {
   createTopUpCheckout,
 } from "@/serverFunctions/billing";
 import { BILLING_ROUTE } from "@/shared/billing";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 export const Route = createFileRoute("/_app/billing")({
   // The loader fills the module-scoped query client, so keep it out of server
@@ -233,7 +234,7 @@ function BillingPage() {
                     </div>
                     <ul className="space-y-1.5">
                       {[
-                        "Access to all OpenSEO features",
+                        `Access to all ${PRODUCT_NAME} features`,
                         monthlyCreditsFeature(BASE_PLAN_OFFER),
                       ].map((item) => (
                         <li

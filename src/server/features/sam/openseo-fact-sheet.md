@@ -51,7 +51,7 @@ New paid operations require credits. AI visibility setup research checks for a p
 - Prompt Tracking collects answers from ChatGPT and Gemini by default, with optional Google AI Overviews. Users choose a market and daily, weekly, or monthly checks. Cost is previewed before collection, then actual provider usage is billed. The monthly allowance covers manual checks too.
 - Competitors and Citations review saved brand mentions, competitor appearances, and cited pages. Viewing and exporting saved results use no credits. Failed checks are not evidence of brand absence.
 
-The workflow guide is at `https://openseo.so/docs/ai-visibility`.
+The workflow guide is the AI Visibility Audit skill at `https://github.com/dejanpa/seo/tree/main/.agents/skills/ai-visibility-audit`.
 
 ## Why Rankloupe for SEO consultants and agencies
 

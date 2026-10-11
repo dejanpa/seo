@@ -3,6 +3,7 @@ import {
   helpLinkClassName,
   SecretHelpPage,
 } from "@/client/features/help/SecretHelpPage";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 const OPENROUTER_KEYS_URL = "https://openrouter.ai/settings/keys";
 
@@ -16,9 +17,9 @@ function OpenrouterApiKeyHelpPage() {
       title="Set up your OpenRouter API key"
       intro={
         <>
-          OpenSEO needs the <code>OPENROUTER_API_KEY</code> secret before AI
-          features like SAM, the in-app SEO agent, can run. It is optional —
-          everything else in OpenSEO works without it.
+          {PRODUCT_NAME} needs the <code>OPENROUTER_API_KEY</code> secret before
+          AI features like SAM, the in-app SEO agent, can run. It is optional —
+          everything else in {PRODUCT_NAME} works without it.
         </>
       }
       secretName="OPENROUTER_API_KEY"
@@ -61,7 +62,7 @@ function OpenrouterApiKeyHelpPage() {
               </li>
             </ul>
           </li>
-          <li>Restart OpenSEO.</li>
+          <li>Restart {PRODUCT_NAME}.</li>
         </>
       }
       dashboardPasteStep="Paste your OpenRouter API key and save."

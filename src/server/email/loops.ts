@@ -151,7 +151,7 @@ export async function sendHostedInvitationEmail({
     email,
     transactionalId: templateId,
     dataVariables: {
-      appName: "OpenSEO",
+      appName: PRODUCT_NAME,
       inviteUrl,
       organizationName,
       inviterName,

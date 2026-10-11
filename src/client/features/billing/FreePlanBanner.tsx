@@ -4,6 +4,7 @@ import { BASE_PLAN_OFFER } from "@/client/features/billing/plan-offers";
 import { useCreditBalance } from "@/client/features/billing/useCreditBalance";
 import { useCanManageBilling } from "@/client/features/team/organizationQueries";
 import { BILLING_ROUTE, SUBSCRIBE_ROUTE } from "@/shared/billing";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 export function FreePlanBanner() {
   const { accountQuery, isFreePlan, isOutOfCredits, isLowCredits, refillDate } =
@@ -67,7 +68,7 @@ export function FreePlanBanner() {
     return (
       <AppBanner variant="warning">
         You&rsquo;re running low on credits. {creditsActionLink} to keep using
-        OpenSEO.
+        {PRODUCT_NAME}.
       </AppBanner>
     );
   }
@@ -75,7 +76,7 @@ export function FreePlanBanner() {
   if (isFreePlan) {
     return (
       <AppBanner variant="info">
-        We hope you&rsquo;re enjoying OpenSEO!{" "}
+        We hope you&rsquo;re enjoying {PRODUCT_NAME}!{" "}
         <Link
           to={SUBSCRIBE_ROUTE}
           search={{ upgrade: true }}

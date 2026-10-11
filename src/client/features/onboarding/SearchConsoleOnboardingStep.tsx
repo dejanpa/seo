@@ -22,6 +22,7 @@ import { captureClientEvent } from "@/client/lib/posthog";
 import { Button } from "@/client/components/ui/button";
 import { Spinner as SpinnerIcon } from "@/client/components/ui/spinner";
 import { WizardFooter } from "@/client/features/onboarding/WizardFooter";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 const GRANT_STATUS_KEY = ["gscGrantStatus"];
 
@@ -47,8 +48,8 @@ export function SearchConsoleOnboardingStep(props: NavigationProps) {
           Connect Google Search Console now?
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Bring your real clicks and queries into OpenSEO and your AI agent. You
-          can also do this later from the dashboard.
+          Bring your real clicks and queries into {PRODUCT_NAME} and your AI
+          agent. You can also do this later from the dashboard.
         </p>
       </div>
 

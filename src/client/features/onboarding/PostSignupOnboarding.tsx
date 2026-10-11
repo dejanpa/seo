@@ -19,6 +19,7 @@ import { SearchConsoleOnboardingStep } from "@/client/features/onboarding/Search
 import { WizardFooter } from "@/client/features/onboarding/WizardFooter";
 import { Input } from "@/client/components/ui/input";
 import { Toggle } from "@/client/components/ui/toggle";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 type PostSignupOnboardingProps = {
   step: number;
@@ -109,7 +110,7 @@ export function PostSignupOnboarding({
             />
           ) : (
             <OnboardingChoiceGroup
-              title="How did you find OpenSEO?"
+              title={`How did you find ${PRODUCT_NAME}?`}
               options={[...SOURCE_OPTIONS]}
               selectedValues={answers.source ? [answers.source] : []}
               onToggle={(source) => updateAnswers({ source })}

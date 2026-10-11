@@ -6,6 +6,7 @@ import {
   REPORT_MAX_PER_PROJECT,
 } from "@/types/schemas/reports";
 import { ReportService } from "./ReportService";
+import { PRODUCT_NAME } from "@/shared/brand";
 
 const mocks = vi.hoisted(() => ({
   listReports: vi.fn(),
@@ -268,7 +269,7 @@ describe("sharing", () => {
     vi.mocked(isHostedServerAuthMode).mockResolvedValue(false);
 
     await expect(share()).rejects.toThrow(
-      "Sharing is only available on hosted OpenSEO.",
+      `Sharing is only available on hosted ${PRODUCT_NAME}.`,
     );
     expect(mocks.setShareToken).not.toHaveBeenCalled();
     expect(mocks.getReport).not.toHaveBeenCalled();

@@ -31,6 +31,7 @@ import {
 import { CopyButton } from "@/client/components/CopyButton";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { authClient } from "@/lib/auth-client";
+import { APP_URL, SKILLS_REPO } from "@/shared/brand";
 
 // Better Auth rejects longer names with INVALID_NAME_LENGTH.
 const MAX_KEY_NAME_LENGTH = 32;
@@ -49,7 +50,7 @@ export function ApiKeySettings() {
 
   const mcpUrl =
     typeof window === "undefined"
-      ? "https://app.openseo.so/mcp"
+      ? `${APP_URL}/mcp`
       : `${window.location.origin}/mcp`;
 
   const apiKeysQuery = useQuery({
@@ -129,7 +130,7 @@ export function ApiKeySettings() {
           <p className="mt-1 text-sm">
             <a
               className="text-primary underline-offset-4 hover:underline"
-              href="https://openseo.so/docs/mcp"
+              href={`https://github.com/${SKILLS_REPO}/tree/main/plugins/rankloupe#readme`}
               target="_blank"
               rel="noreferrer"
             >
