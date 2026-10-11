@@ -29,7 +29,6 @@ export const SUPPORT_EMAIL = "support@cortexlabs.cloud";
  */
 export const SKILLS_REPO = "dejanpa/seo";
 
-
 /**
  * Public URL of this deployment. Used only where a real origin is needed before
  * one is known — server-side rendering (no `window`), the chat agent's stored
