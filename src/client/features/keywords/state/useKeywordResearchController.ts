@@ -14,6 +14,7 @@ import { usePreferredKeywordGrouping } from "@/client/features/keywords/hooks/us
 import { useLocalKeywordFilters } from "@/client/features/keywords/hooks/useLocalKeywordFilters";
 import { useKeywordResearchData } from "@/client/features/keywords/hooks/useKeywordResearchData";
 import { useKeywordSerpAnalysis } from "@/client/features/keywords/hooks/useKeywordSerpAnalysis";
+import { useKeywordSidePanels } from "@/client/features/keywords/hooks/useKeywordSidePanels";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { useSearchHistory } from "@/client/hooks/useSearchHistory";
 import {
@@ -249,6 +250,12 @@ export function useKeywordResearchController(
     setShowSaveDialog: uiState.setShowSaveDialog,
   });
 
+  const sidePanels = useKeywordSidePanels(
+    input.projectId,
+    activeSerpKeyword,
+    locationCode,
+  );
+
   const handleRowClick = (row: KeywordResearchRow) => {
     captureClientEvent("keyword_research:serp_open");
     uiState.setSelectedKeyword(row);
@@ -312,5 +319,6 @@ export function useKeywordResearchController(
     sortField: input.sortField,
     toggleSort,
     SERP_PAGE_SIZE,
+    ...sidePanels,
   };
 }

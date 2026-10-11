@@ -25,6 +25,7 @@ import { SavedKeywordsBulkActionBar } from "@/client/features/saved-keywords/Sav
 import { SavedKeywordsBulkTagsModal } from "@/client/features/saved-keywords/SavedKeywordsBulkTagsModal";
 import { SavedKeywordsFilters } from "@/client/features/saved-keywords/SavedKeywordsFilters";
 import { SavedKeywordsHeader } from "@/client/features/saved-keywords/SavedKeywordsHeader";
+import { SavedKeywordsOverview } from "@/client/features/saved-keywords/SavedKeywordsOverview";
 import {
   DeleteSavedKeywordsModal,
   RemoveSavedKeywordsError,
@@ -319,6 +320,9 @@ function SavedKeywordsPage() {
           onExportSheets={() => void exporter.exportFiltered("sheets")}
           onRefreshMetrics={() => refreshMetricsMutation.mutate()}
         />
+
+        {/* Fork: the keyword research overview, over the whole saved set. */}
+        <SavedKeywordsOverview input={exporter.exportInput} />
 
         {removeError ? (
           <RemoveSavedKeywordsError message={removeError} />

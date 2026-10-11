@@ -1,10 +1,17 @@
-import { FileDown, Save, Sheet } from "lucide-react";
+import { useState } from "react";
+import { FileDown, Printer, Save, Sheet } from "lucide-react";
+import { Button } from "@/client/components/ui/button";
 import {
   lastTwelveMonths,
   MONTH_SHORT_LABELS,
 } from "@/client/features/keywords/utils";
 import {
   AreaTrendChart,
+  KeywordAudienceCard,
+  KeywordAutocompleteCard,
+  KeywordDashboard,
+  KeywordHistoryCard,
+  KeywordTrendsCard,
   OverviewStats,
   SerpAnalysisCard,
 } from "@/client/features/keywords/components";
@@ -58,8 +65,19 @@ type Props = {
 // Below md the page shows one panel at a time behind tabs, and hides the
 // overview stats and the trend chart.
 export function KeywordResearchResults({ controller }: Props) {
+  const [overviewOpen, setOverviewOpen] = useState(true);
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden w-full">
+      {/* Fork: summarizes the filtered rows, so the overview describes exactly
+          what the table below it is showing. */}
+      <div className="mb-4 hidden md:block">
+        <KeywordDashboard
+          rows={controller.filteredRows}
+          open={overviewOpen}
+          onOpenChange={setOverviewOpen}
+        />
+      </div>
       <MobileTabs controller={controller} />
       <div className="flex-1 flex flex-col xl:flex-row overflow-y-auto xl:overflow-hidden gap-4">
         <KeywordPanel controller={controller} />
@@ -75,6 +93,7 @@ function MobileTabs({ controller }: Props) {
       value={controller.mobileTab}
       onValueChange={controller.setMobileTab}
       className="mb-4 shrink-0 md:hidden"
+      data-print-hide
     >
       <TabsList variant="line" className="w-full">
         <TabsTrigger value="keywords">
@@ -173,14 +192,27 @@ function TableCard({ controller }: Props) {
         resetFilters={controller.resetFilters}
         handleRowClick={controller.handleRowClick}
         toolbar={
-          <>
+          <div data-print-hide>
             <DataTableToolbar
               actions={
-                <ExportMenu
-                  actions={["sheets", "csv"]}
-                  onExport={controller.exportAll}
-                  disabled={filteredRows.length === 0}
-                />
+                <>
+                  <ExportMenu
+                    actions={["sheets", "csv"]}
+                    onExport={controller.exportAll}
+                    disabled={filteredRows.length === 0}
+                  />
+                  {/* Fork: the browser's print dialog is the PDF writer, so
+                      Serbian keywords keep their page fonts. */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={filteredRows.length === 0}
+                    onClick={() => window.print()}
+                  >
+                    <Printer />
+                    Save as PDF
+                  </Button>
+                </>
               }
             >
               <DataTableFilterToggle
@@ -195,7 +227,7 @@ function TableCard({ controller }: Props) {
               </span>
             </DataTableToolbar>
             {showFilters ? <TableFilters controller={controller} /> : null}
-          </>
+          </div>
         }
         footer={
           filteredRows.length > 0 ? (
@@ -301,6 +333,24 @@ function SerpPanel({ controller }: Props) {
         page={controller.serpPage}
         pageSize={controller.SERP_PAGE_SIZE}
         onPageChange={controller.setSerpPage}
+      />
+
+      {/* Fork: paid lookups on the focused keyword, each bought on open. */}
+      <KeywordTrendsCard
+        panel={controller.trends}
+        keyword={controller.activeSerpKeyword}
+      />
+      <KeywordHistoryCard
+        panel={controller.keywordHistory}
+        keyword={controller.activeSerpKeyword}
+      />
+      <KeywordAudienceCard
+        panel={controller.audience}
+        keyword={controller.activeSerpKeyword}
+      />
+      <KeywordAutocompleteCard
+        panel={controller.autocomplete}
+        keyword={controller.activeSerpKeyword}
       />
     </div>
   );

@@ -18,8 +18,10 @@ export const PRODUCT_NAME = "Rankloupe";
 export const SUPPORT_EMAIL = "support@cortexlabs.cloud";
 
 /**
- * GitHub repository the in-app Skills installer points at — `npx skills add`
- * and the manual clone on the AI page both read it from here.
+ * GitHub repository the in-app agent setup points at: its doc and skill links
+ * read it from here. The installer prompts (.agents/skills/setup-openseo and
+ * agentUpdatePrompt.md) are plain text and name it directly, so change them
+ * together.
  *
  * Point this at your own fork before inviting users: the commands are shown to
  * them verbatim, and the repository has to be public for `npx skills add` to
@@ -27,8 +29,6 @@ export const SUPPORT_EMAIL = "support@cortexlabs.cloud";
  */
 export const SKILLS_REPO = "dejanpa/seo";
 
-/** Directory name `git clone` creates for SKILLS_REPO. */
-export const SKILLS_REPO_DIR = SKILLS_REPO.split("/")[1];
 
 /**
  * Public URL of this deployment. Used only where a real origin is needed before

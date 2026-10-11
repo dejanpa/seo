@@ -55,7 +55,11 @@ export function DataTableToolbar({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-2.5">
+    // Fork: toolbars are on-screen controls, kept off printed reports.
+    <div
+      data-print-hide
+      className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-2.5"
+    >
       <div className="flex flex-wrap items-center gap-2">{children}</div>
       {actions ? (
         <div className="flex flex-wrap items-center gap-2">{actions}</div>
@@ -96,7 +100,10 @@ export function DataTableFilterPanel({
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-3 border-b border-border bg-foreground/[0.02] px-4 py-3">
+    <div
+      data-print-hide
+      className="space-y-3 border-b border-border bg-foreground/[0.02] px-4 py-3"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold">Refine results</p>

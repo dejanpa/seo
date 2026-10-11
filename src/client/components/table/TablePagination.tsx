@@ -69,7 +69,11 @@ export function TablePagination<TSize extends number>({
   }, [currentPage, isLoading, isOutOfRange, onPageChange]);
 
   return (
-    <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    // Fork: pagination is an on-screen control, kept off printed reports.
+    <div
+      data-print-hide
+      className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+    >
       <div className="flex items-center gap-2 text-sm text-muted-foreground tabular-nums">
         <span className="whitespace-nowrap">
           {formatRange(currentPage, pageSize, totalCount, pageRange)}

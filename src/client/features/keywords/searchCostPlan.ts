@@ -11,9 +11,10 @@ import type { KeywordMode } from "./keywordResearchTypes";
  * thing the reader can act on.
  *
  * Mirrors the server: research.ts routes Google-Ads markets to a single ideas
- * call, runs the three Labs expansion sources in order for "auto" until
- * coverage is sufficient, and one source otherwise. See backfill.ts for the
- * fill-in calls and useKeywordSerpAnalysis for the SERP one.
+ * call; Labs "auto" runs suggestions and ideas together and adds related only
+ * when they come back thin; any other mode runs one source; a local search adds
+ * one Google Ads volume call. See backfill.ts for the fill-in calls and
+ * useKeywordSerpAnalysis for the SERP one.
  */
 type SearchCostPlan = {
   minLookups: number;
@@ -21,20 +22,21 @@ type SearchCostPlan = {
   summary: string;
 };
 
-const AUTO_SOURCE_COUNT = 3;
-
 export function describeSearchCost(input: {
   mode: KeywordMode;
   locationCode: number;
+  locationName?: string;
   clickstream: boolean;
 }): SearchCostPlan {
   const isGoogleAds = getKeywordDataProvider(input.locationCode) !== "labs";
+  const blended = !isGoogleAds && input.mode === "auto";
 
   // Google Ads markets get one ideas call and no source fallback; Labs "auto"
-  // stops as soon as a source returns enough non-seed keywords.
-  const minKeywordLookups = 1;
-  const maxKeywordLookups =
-    isGoogleAds || input.mode !== "auto" ? 1 : AUTO_SOURCE_COUNT;
+  // always blends two sources and falls back to a third only when they are
+  // thin. A local search buys one more call for the area's volumes.
+  const localLookups = input.locationName ? 1 : 0;
+  const minKeywordLookups = (blended ? 2 : 1) + localLookups;
+  const maxKeywordLookups = (blended ? 3 : 1) + localLookups;
 
   // Intent is filled in when the market's language supports it; difficulty
   // only on Labs markets. Both are skipped when nothing is missing.
@@ -53,8 +55,10 @@ export function describeSearchCost(input: {
   return {
     minLookups,
     maxLookups,
-    summary: input.clickstream
-      ? `Runs ${range}, and clickstream doubles the keyword ones.`
-      : `Runs ${range}.`,
+    // Google Ads markets and local searches ignore the clickstream option.
+    summary:
+      input.clickstream && !isGoogleAds && !input.locationName
+        ? `Runs ${range}, and clickstream doubles the keyword ones.`
+        : `Runs ${range}.`,
   };
 }

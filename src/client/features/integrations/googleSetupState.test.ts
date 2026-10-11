@@ -5,6 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 import { GoogleConnectionCard } from "@/client/features/integrations/GoogleConnectionCard";
 import { SearchConsoleOnboardingStep } from "@/client/features/onboarding/SearchConsoleOnboardingStep";
 
+// Fork: the card sits behind the plan lock, which asks for entitlements.
+vi.mock("@/serverFunctions/billing", () => ({
+  getPlanEntitlements: vi.fn(),
+}));
 vi.mock("@/serverFunctions/gsc", () => ({
   getGscConnection: vi.fn(),
   listGscSites: vi.fn(),

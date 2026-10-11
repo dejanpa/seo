@@ -5,7 +5,10 @@ import { BackButton, PageHeader } from "@/client/components/PageHeader";
 import { Button } from "@/client/components/ui/button";
 import { InsufficientCreditsError } from "@/client/features/billing/InsufficientCreditsError";
 import { getErrorCode } from "@/client/lib/error-messages";
-import { formatLocationLabel } from "@/shared/keyword-locations";
+import {
+  formatLocationLabel,
+  LOCATION_OPTIONS,
+} from "@/shared/keyword-locations";
 import { useKeywordResearchController } from "@/client/features/keywords/state/useKeywordResearchController";
 import type {
   KeywordResearchControllerInput,
@@ -213,16 +216,27 @@ export function KeywordResearchPage(input: Props) {
           }
         />
 
-        <KeywordResearchSearchBar controller={controller} />
+        {/* Fork: the search controls do not print, so on paper this line is
+            the only record of what the report is about. */}
+        <PrintHeader
+          keyword={controller.searchedKeyword}
+          locationCode={controller.lastSearchLocationCode}
+          locationName={controller.locationName}
+        />
+        <div data-print-hide>
+          <KeywordResearchSearchBar controller={controller} />
+        </div>
         {controller.hasSearched ? (
-          <SearchTabStrip
-            projectId={projectId}
-            tabs={searchTabs.tabs}
-            activeTabId={searchTabs.activeTabId}
-            onSelect={searchTabs.selectTab}
-            onClose={searchTabs.closeTab}
-            onViewed={searchTabs.markTabViewed}
-          />
+          <div data-print-hide>
+            <SearchTabStrip
+              projectId={projectId}
+              tabs={searchTabs.tabs}
+              activeTabId={searchTabs.activeTabId}
+              onSelect={searchTabs.selectTab}
+              onClose={searchTabs.closeTab}
+              onViewed={searchTabs.markTabViewed}
+            />
+          </div>
         ) : null}
         <KeywordResearchContent
           controller={controller}
@@ -338,5 +352,28 @@ function KeywordSaveDialog({
         ) : null}
       </div>
     </FormDialog>
+  );
+}
+
+/** Fork: keyword, market and date, printed in place of the search controls. */
+function PrintHeader({
+  keyword,
+  locationCode,
+  locationName,
+}: {
+  keyword: string;
+  locationCode: number | undefined;
+  locationName: string | undefined;
+}) {
+  if (!keyword) return null;
+
+  const market = locationName
+    ? formatLocationLabel(locationName)
+    : LOCATION_OPTIONS.find((option) => option.code === locationCode)?.label;
+  return (
+    <p className="hidden text-sm text-muted-foreground print:block">
+      {keyword}
+      {market ? ` · ${market}` : ""} · {new Date().toLocaleDateString()}
+    </p>
   );
 }

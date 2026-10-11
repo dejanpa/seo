@@ -7,15 +7,15 @@ const US = 2840;
 const ICELAND = 2352;
 
 describe("describeSearchCost", () => {
-  it("counts every source auto may walk plus the fill-ins and the SERP", () => {
+  it("counts the sources auto may run plus the fill-ins and the SERP", () => {
     const plan = describeSearchCost({
       mode: "auto",
       locationCode: US,
       clickstream: false,
     });
 
-    // 1 source + SERP at best; 3 sources + 2 fill-ins + SERP at worst.
-    expect(plan).toMatchObject({ minLookups: 2, maxLookups: 6 });
+    // 2 blended sources + SERP at best; + related + 2 fill-ins at worst.
+    expect(plan).toMatchObject({ minLookups: 3, maxLookups: 6 });
   });
 
   it("drops the source fallback a Google-Ads market never runs", () => {

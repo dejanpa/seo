@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Printer, RefreshCw } from "lucide-react";
 import { ConfirmDialog } from "@/client/components/ConfirmDialog";
 import { ExportMenu } from "@/client/components/ExportMenu";
 import { PageHeader } from "@/client/components/PageHeader";
@@ -29,7 +29,8 @@ export function SavedKeywordsHeader({
         title="Saved Keywords"
         description="Save keyword ideas from research, organize them with tags, and revisit when you're ready to act."
         actions={
-          <>
+          // Fork: on-screen controls stay off the printed report.
+          <div data-print-hide className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -52,7 +53,19 @@ export function SavedKeywordsHeader({
                 action === "sheets" ? onExportSheets() : onExportCsv()
               }
             />
-          </>
+
+            {/* The browser's print dialog is the PDF writer, so Serbian
+                keywords keep their page fonts. */}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={totalCount === 0}
+              onClick={() => window.print()}
+            >
+              <Printer data-icon="inline-start" />
+              Save as PDF
+            </Button>
+          </div>
         }
       />
 

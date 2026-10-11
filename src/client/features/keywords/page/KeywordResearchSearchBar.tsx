@@ -14,6 +14,7 @@ import {
 import { KeywordAreaField, LocalVolumeCostNote } from "./KeywordAreaField";
 import { KeywordSearchOptions } from "./KeywordSearchOptions";
 import type { KeywordResearchControllerState } from "./types";
+import { describeSearchCost } from "@/client/features/keywords/searchCostPlan";
 
 type Props = {
   controller: KeywordResearchControllerState;
@@ -125,18 +126,38 @@ export function KeywordResearchSearchBar({ controller }: Props) {
         </controlsForm.Field>
         <controlsForm.Subscribe
           selector={(state) =>
-            [state.values.locationCode, state.values.locationName] as const
+            [
+              state.values.locationCode,
+              state.values.locationName,
+              state.values.mode,
+              state.values.clickstream,
+            ] as const
           }
         >
-          {([locationCode, locationName]) => (
+          {([locationCode, locationName, mode, clickstream]) => (
             <>
+              {/* Fork: what the search will run, before it runs. */}
+              <p className="text-xs text-muted-foreground">
+                {
+                  describeSearchCost({
+                    mode,
+                    locationCode,
+                    locationName,
+                    clickstream,
+                  }).summary
+                }{" "}
+                The panels beside the results cost extra and stay closed until
+                you open them.
+              </p>
               {isLabsLocationCode(locationCode) ? null : (
                 <Alert variant="info" role="status">
                   <Info />
                   <AlertDescription>
                     Keyword data for this country comes from Google Ads — search
-                    volume, CPC, and trends are available, but difficulty and
-                    intent are not.
+                    volume, CPC, and trends are available. Difficulty is not:
+                    DataForSEO Labs, which scores it, does not cover this
+                    country. Intent is filled in separately where the country's
+                    language supports it.
                   </AlertDescription>
                 </Alert>
               )}

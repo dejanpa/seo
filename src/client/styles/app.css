@@ -349,3 +349,53 @@ html[data-theme="openseo-dark"] {
   --trend-tooltip-border: oklch(40% 0.01 255 / 0.65);
   --trend-tooltip-shadow: oklch(0% 0 0 / 0.35);
 }
+
+/* Fork: printing, which is also how a keyword report leaves the app as a PDF:
+   every browser offers "Save as PDF" from the print dialog, so no PDF library
+   and — more to the point — no embedded font. A bundled generator ships
+   Latin-1 fonts by default and would mangle š, ć, č, ž in Serbian keywords;
+   printing uses the page's own fonts and cannot. */
+@media print {
+  /* The shell is a fixed-height flex column with its own scroller, so without
+     this only the visible viewport reaches the paper. */
+  html,
+  body,
+  body * {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* The app's navigation, and anything a page marks as on-screen only. */
+  [data-slot="sidebar"],
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"],
+  [data-slot="sidebar-trigger"],
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  [data-slot="sidebar-inset"] {
+    margin: 0 !important;
+    border: 0 !important;
+  }
+
+  /* Chart fills, badge tints and bar backgrounds are the content here, not
+     decoration; browsers drop them otherwise. */
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* A card split across a page break is unreadable. */
+  [data-slot="card"],
+  table tr {
+    break-inside: avoid;
+  }
+
+  /* Row selection is an on-screen affordance; on paper it is a column of
+     empty boxes. */
+  [role="checkbox"] {
+    display: none !important;
+  }
+}
