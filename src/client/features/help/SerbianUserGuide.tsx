@@ -1,4 +1,4 @@
-import { isHostedClientAuthMode } from "@/lib/auth-mode";
+import { GuideView, type GuideContent } from "@/client/features/help/GuideView";
 import { PRODUCT_NAME } from "@/shared/brand";
 
 const NAV_GROUPS = [
@@ -10,15 +10,23 @@ const NAV_GROUPS = [
   {
     group: "Research",
     scope: "Bilo koji domen — i konkurencija",
-    pages:
-      "Keyword Research, Domain Overview, Backlinks, Brand Lookup, Prompt Explorer",
+    pages: "Keyword Research, Domain Overview, Backlinks",
+  },
+  {
+    group: "AI Visibility",
+    scope: "Kako AI asistenti odgovaraju o tvom tržištu",
+    pages: "Prompt Research, Prompt Explorer, Prompt Tracking",
   },
   {
     group: "My Site",
     scope: "Samo tvoj domen, sa istorijom",
     pages: "GSC Insights, Rank Tracking, Saved Keywords, Site Audit",
   },
-  { group: "Connect", scope: "Van aplikacije", pages: "AI & MCP" },
+  {
+    group: "AI Tools",
+    scope: "Agenti i zajednički kontekst projekta",
+    pages: "Reports, Context, Agent setup",
+  },
 ];
 
 const STEPS = [
@@ -26,8 +34,8 @@ const STEPS = [
     title: "Popuni Context projekta",
     body: (
       <>
-        <strong>Project settings → Context.</strong> Upiši čime se sajt bavi, ko
-        su konkurenti i koje su ključne strane. Ovo je jedina stranica koja ne
+        <strong>AI Tools → Context.</strong> Upiši čime se sajt bavi, ko su
+        konkurenti i koje su ključne strane. Ovo je jedina stranica koja ne
         troši ništa, a menja kvalitet svega ostalog — SAM agent i MCP alati
         čitaju odavde umesto da nagađaju.
       </>
@@ -74,9 +82,7 @@ const STEPS = [
   },
 ];
 
-type PageCard = { name: string; cost: boolean; body: string; input: string };
-
-const PAGE_GROUPS: { label: string; cards: PageCard[] }[] = [
+const PAGE_GROUPS: GuideContent["pages"]["groups"] = [
   {
     label: "Research — bilo koji domen",
     cards: [
@@ -98,17 +104,28 @@ const PAGE_GROUPS: { label: string; cards: PageCard[] }[] = [
         body: "Ko linkuje ka domenu, šta se promenilo skoro i koje strane privlače linkove.",
         input: "unos: domen",
       },
+    ],
+  },
+  {
+    label: "AI Visibility — kako asistenti odgovaraju",
+    cards: [
       {
-        name: "Brand Lookup",
+        name: "Prompt Research",
         cost: true,
-        body: "Koliko ChatGPT i Google AI Overview pominju neki brend, u kojim promptima i uz koje izvore.",
-        input: "unos: naziv brenda ili domen",
+        body: "Pitanja koja ljudi postavljaju o nekoj reči, sa ChatGPT odgovorima i izvorima koje citira. Pitanja dolaze uglavnom iz Google „People also ask”, na američkom engleskom.",
+        input: "unos: ključna reč",
       },
       {
         name: "Prompt Explorer",
         cost: true,
         body: "Isti prompt kroz ChatGPT, Claude, Gemini i Perplexity odjednom — i koje izvore svaki citira.",
         input: "unos: prompt",
+      },
+      {
+        name: "Prompt Tracking",
+        cost: true,
+        body: "Po rasporedu ponovo postavlja izabrane promptove i prati pominjanja, citate i konkurente kroz vreme. Cena se vidi pre svakog prikupljanja.",
+        input: "unos: promptovi + raspored",
       },
     ],
   },
@@ -142,7 +159,7 @@ const PAGE_GROUPS: { label: string; cards: PageCard[] }[] = [
     ],
   },
   {
-    label: "Agent i integracije",
+    label: "Agenti i zajednički kontekst",
     cards: [
       {
         name: "SAM",
@@ -151,10 +168,22 @@ const PAGE_GROUPS: { label: string; cards: PageCard[] }[] = [
         input: "chat u okviru projekta",
       },
       {
-        name: "AI & MCP",
+        name: "Agent setup",
         cost: false,
-        body: "Kači Claude Code ili Codex na tvoju instancu — alati za keyword research, SERP, domene i backlinks direktno iz editora.",
+        body: `Kači Claude Code, Codex ili drugi MCP klijent na tvoju ${PRODUCT_NAME} instancu — alati za istraživanje direktno iz editora ili chata.`,
         input: "MCP endpoint aplikacije",
+      },
+      {
+        name: "Reports",
+        cost: false,
+        body: "HTML izveštaji koje povezani agent sačuva u projekat. Ovde ih čitaš, štampaš ili izvoziš; ne pišu se ručno.",
+        input: "piše ih agent preko MCP-a",
+      },
+      {
+        name: "Context",
+        cost: false,
+        body: "Čime se sajt bavi, konkurenti i ključne strane. SAM i povezani agenti čitaju odavde umesto da nagađaju.",
+        input: "popunjava se ručno ili kroz /seo-project-setup",
       },
     ],
   },
@@ -225,170 +254,56 @@ fetch("https://api.dataforseo.com/v3/appendix/user_data",
 # logovi
 docker compose logs -f --tail 50`;
 
-function CostBadge({ cost }: { cost: boolean }) {
-  return cost ? (
-    <span className="badge badge-warning badge-sm shrink-0">troši</span>
-  ) : (
-    <span className="badge badge-success badge-sm shrink-0">besplatno</span>
-  );
-}
+const CONTENT: GuideContent = {
+  costLabels: { paid: "troši", free: "besplatno" },
+  organization: {
+    title: "Kako je aplikacija organizovana",
+    intro: (
+      <>
+        Sve visi o <strong>projektu</strong>. Projekat je jedan domen plus
+        njegova zemlja i jezik. Sve što sačuvaš — ključne reči, rank tracking,
+        auditi, GSC veza — pripada tom projektu. Prebacuješ se preko{" "}
+        <strong>Projects</strong> gore levo.
+      </>
+    ),
+    menuIntro: (
+      <>
+        Levi meni je podeljen po tome <em>čiji</em> je domen u pitanju, i to je
+        najkorisnija stvar koju treba da zapamtiš:
+      </>
+    ),
+    columns: ["Grupa", "Na šta se odnosi", "Stranice"],
+    rows: NAV_GROUPS,
+  },
+  steps: {
+    title: "Pet koraka, ovim redom",
+    intro:
+      "Redosled nije proizvoljan: svaki korak puni podatke koje sledeći koristi.",
+    items: STEPS,
+  },
+  pages: {
+    title: "Šta koja stranica radi",
+    legend: ({ paid, free }) => (
+      <>
+        {paid} znači da poziv ide na DataForSEO i skida sa tvog kredita. {free}{" "}
+        znači Google API ili lokalna baza.
+      </>
+    ),
+    groups: PAGE_GROUPS,
+  },
+  selfHost: {
+    trapsTitle: "Četiri stvari koje iznenade",
+    traps: SELF_HOST_TRAPS,
+    commandsTitle: "Komande koje ti trebaju",
+    commandsIntro: (
+      <>
+        Sve se izvršava iz foldera u kome stoji <code>compose.yaml</code>.
+      </>
+    ),
+    commands: COMMANDS,
+  },
+};
 
 export function SerbianUserGuide() {
-  // Docker/OAuth gotchas and terminal commands only apply to a self-hosted
-  // container; on the hosted service they would be actively misleading.
-  const isSelfHosted = !isHostedClientAuthMode();
-
-  return (
-    <div className="h-full overflow-auto bg-base-100 px-4 py-8 pb-24 md:px-6 md:py-10 md:pb-8">
-      <div className="mx-auto w-full max-w-3xl space-y-10">
-        <header className="space-y-2 border-b border-base-300 pb-6">
-          <p className="text-xs font-medium uppercase tracking-widest text-base-content/40">
-            Priručnik
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Kako se koristi {PRODUCT_NAME}
-          </h1>
-          <p className="text-sm leading-relaxed text-base-content/70">
-            Šta koja stranica radi, kojim redom da ih koristiš, i gde se troši
-            kredit.
-          </p>
-        </header>
-
-        <section className="space-y-3">
-          <h2 className="text-xl font-semibold">
-            Kako je aplikacija organizovana
-          </h2>
-          <p className="text-sm leading-relaxed text-base-content/80">
-            Sve visi o <strong>projektu</strong>. Projekat je jedan domen plus
-            njegova zemlja i jezik. Sve što sačuvaš — ključne reči, rank
-            tracking, auditi, GSC veza — pripada tom projektu. Prebacuješ se
-            preko <strong>Projects</strong> gore levo.
-          </p>
-          <p className="text-sm leading-relaxed text-base-content/80">
-            Levi meni je podeljen po tome <em>čiji</em> je domen u pitanju, i to
-            je najkorisnija stvar koju treba da zapamtiš:
-          </p>
-          <div className="overflow-x-auto rounded-lg border border-base-300">
-            <table className="table table-sm">
-              <thead>
-                <tr>
-                  <th>Grupa</th>
-                  <th>Na šta se odnosi</th>
-                  <th>Stranice</th>
-                </tr>
-              </thead>
-              <tbody>
-                {NAV_GROUPS.map((row) => (
-                  <tr key={row.group}>
-                    <td className="font-medium whitespace-nowrap">
-                      {row.group}
-                    </td>
-                    <td className="text-base-content/70">{row.scope}</td>
-                    <td className="text-base-content/70">{row.pages}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-xl font-semibold">Pet koraka, ovim redom</h2>
-          <p className="text-sm leading-relaxed text-base-content/80">
-            Redosled nije proizvoljan: svaki korak puni podatke koje sledeći
-            koristi.
-          </p>
-          <ol className="space-y-3">
-            {STEPS.map((step, index) => (
-              <li
-                key={step.title}
-                className="flex gap-3 rounded-lg border border-base-300 p-4"
-              >
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                  {index + 1}
-                </span>
-                <div className="space-y-1">
-                  <h3 className="font-semibold">{step.title}</h3>
-                  <p className="text-sm leading-relaxed text-base-content/70">
-                    {step.body}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Šta koja stranica radi</h2>
-          <p className="text-sm leading-relaxed text-base-content/80">
-            <span className="badge badge-warning badge-sm">troši</span> znači da
-            poziv ide na DataForSEO i skida sa tvog kredita.{" "}
-            <span className="badge badge-success badge-sm">besplatno</span>{" "}
-            znači Google API ili lokalna baza.
-          </p>
-
-          {PAGE_GROUPS.map((group) => (
-            <div key={group.label} className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-widest text-base-content/40">
-                {group.label}
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {group.cards.map((card) => (
-                  <div
-                    key={card.name}
-                    className="space-y-1.5 rounded-lg border border-base-300 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold">{card.name}</h3>
-                      <CostBadge cost={card.cost} />
-                    </div>
-                    <p className="text-sm leading-relaxed text-base-content/70">
-                      {card.body}
-                    </p>
-                    <p className="font-mono text-xs text-base-content/50">
-                      {card.input}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </section>
-
-        {isSelfHosted ? (
-          <>
-            <section className="space-y-3">
-              <h2 className="text-xl font-semibold">
-                Četiri stvari koje iznenade
-              </h2>
-              <div className="space-y-3">
-                {SELF_HOST_TRAPS.map((trap, index) => (
-                  <div
-                    key={index}
-                    className="space-y-1 rounded-lg border-l-2 border-warning bg-base-200/40 p-4"
-                  >
-                    <h3 className="font-semibold">{trap.title}</h3>
-                    <p className="text-sm leading-relaxed text-base-content/70">
-                      {trap.body}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="space-y-3">
-              <h2 className="text-xl font-semibold">Komande koje ti trebaju</h2>
-              <p className="text-sm leading-relaxed text-base-content/80">
-                Sve se izvršava iz foldera u kome stoji{" "}
-                <code>compose.yaml</code>.
-              </p>
-              <pre className="overflow-x-auto rounded-lg border border-base-300 bg-base-200 p-4 text-xs leading-relaxed">
-                <code>{COMMANDS}</code>
-              </pre>
-            </section>
-          </>
-        ) : null}
-      </div>
-    </div>
-  );
+  return <GuideView content={CONTENT} />;
 }

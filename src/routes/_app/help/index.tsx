@@ -1,4 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { EmptyState } from "@/client/components/EmptyState";
+import { PageHeader } from "@/client/components/PageHeader";
+import { Spinner } from "@/client/components/Spinner";
+import { Button } from "@/client/components/ui/button";
 import { useViewerAdminStatus } from "@/client/features/admin/queries";
 import { SerbianUserGuide } from "@/client/features/help/SerbianUserGuide";
 import { PRODUCT_NAME } from "@/shared/brand";
@@ -19,26 +23,40 @@ function GuideRoute() {
   if (viewer.isLoading) {
     return (
       <div className="flex justify-center py-16">
-        <span className="loading loading-spinner loading-md" />
+        <Spinner />
       </div>
     );
   }
 
-  if (!viewer.data?.isAdmin) {
-    return (
-      <div className="px-4 py-12 md:px-6">
-        <div className="mx-auto flex max-w-md flex-col items-center gap-3 rounded-lg border border-base-300 p-8 text-center">
-          <h1 className="text-lg font-semibold">Guide moved</h1>
-          <p className="text-sm text-base-content/60">
-            The {PRODUCT_NAME} guide now lives in Help &amp; Support.
-          </p>
-          <Link to="/support" className="btn btn-sm">
-            Open Help &amp; Support
-          </Link>
-        </div>
+  return (
+    <div className="h-full overflow-auto px-4 py-4 pb-24 md:px-6 md:py-6 md:pb-8">
+      <div className="mx-auto max-w-3xl space-y-10">
+        {viewer.data?.isAdmin ? (
+          <>
+            <PageHeader
+              title={`Priručnik za ${PRODUCT_NAME}`}
+              description="Šta koja stranica radi, kojim redom ih koristiti i gde se troše krediti."
+            />
+            <SerbianUserGuide />
+          </>
+        ) : (
+          <EmptyState
+            icon={null}
+            title="Guide moved"
+            description={`The ${PRODUCT_NAME} guide now lives in Help & Support.`}
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                nativeButton={false}
+                render={<Link to="/support" />}
+              >
+                Open Help & Support
+              </Button>
+            }
+          />
+        )}
       </div>
-    );
-  }
-
-  return <SerbianUserGuide />;
+    </div>
+  );
 }

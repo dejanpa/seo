@@ -5,6 +5,7 @@ import { useState, type ComponentType } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeftRight,
+  BookOpen,
   Check,
   CircleHelp,
   CreditCard,
@@ -23,6 +24,7 @@ import {
   SamChatListSkeleton,
   SamSidebarPanel,
 } from "@/client/features/sam/SamSidebarPanel";
+import { useViewerAdminStatus } from "@/client/features/admin/queries";
 import { ThemePreferenceRadio } from "@/client/components/ThemePreferenceMenuItems";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { signOutAndRedirect, useSession } from "@/lib/auth-client";
@@ -204,6 +206,7 @@ export function Sidebar({
 function AccountFooter({ ready }: { ready: boolean }) {
   const { data: session } = useSession();
   const { setOpenMobile } = useSidebar();
+  const viewerAdmin = useViewerAdminStatus();
   const email = session?.user?.email;
   const [isSwitching, setIsSwitching] = useState(false);
   const orgContextQuery = useQuery({
@@ -228,9 +231,17 @@ function AccountFooter({ ready }: { ready: boolean }) {
   return (
     <UiSidebarFooter className="gap-0 border-t border-sidebar-border pb-safe">
       <SidebarMenu>
+        {/* Fork: the Serbian operator guide, for administrators. */}
+        {viewerAdmin.data?.isAdmin ? (
+          <SidebarNavLink
+            icon={BookOpen}
+            label="Priručnik"
+            linkProps={{ to: "/help" }}
+          />
+        ) : null}
         <SidebarNavLink
           icon={CircleHelp}
-          label="Help & Community"
+          label="Help & Support"
           linkProps={{ to: "/support" }}
         />
         {email ? (

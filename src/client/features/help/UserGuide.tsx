@@ -1,4 +1,4 @@
-import { isHostedClientAuthMode } from "@/lib/auth-mode";
+import { GuideView, type GuideContent } from "@/client/features/help/GuideView";
 import { PRODUCT_NAME } from "@/shared/brand";
 
 const NAV_GROUPS = [
@@ -6,15 +6,23 @@ const NAV_GROUPS = [
   {
     group: "Research",
     scope: "Any domain, competitors included",
-    pages:
-      "Keyword Research, Domain Overview, Backlinks, Brand Lookup, Prompt Explorer",
+    pages: "Keyword Research, Domain Overview, Backlinks",
+  },
+  {
+    group: "AI Visibility",
+    scope: "How AI assistants answer about your market",
+    pages: "Prompt Research, Prompt Explorer, Prompt Tracking",
   },
   {
     group: "My Site",
     scope: "Your domain only, with history",
     pages: "GSC Insights, Rank Tracking, Saved Keywords, Site Audit",
   },
-  { group: "Connect", scope: "Outside the app", pages: "AI & MCP" },
+  {
+    group: "AI Tools",
+    scope: "Agents and shared project context",
+    pages: "Reports, Context, Agent setup",
+  },
 ];
 
 const STEPS = [
@@ -22,10 +30,10 @@ const STEPS = [
     title: "Fill in the project Context",
     body: (
       <>
-        <strong>Project settings → Context.</strong> Write down what the site
-        does, who the competitors are, and which pages matter. It is the one
-        page that costs nothing and changes the quality of everything else — the
-        SAM agent and the MCP tools read it instead of guessing.
+        <strong>AI Tools → Context.</strong> Write down what the site does, who
+        the competitors are, and which pages matter. It is the one page that
+        costs nothing and changes the quality of everything else — the SAM agent
+        and the MCP tools read it instead of guessing.
       </>
     ),
   },
@@ -73,9 +81,7 @@ const STEPS = [
   },
 ];
 
-type PageCard = { name: string; cost: boolean; body: string; input: string };
-
-const PAGE_GROUPS: { label: string; cards: PageCard[] }[] = [
+const PAGE_GROUPS: GuideContent["pages"]["groups"] = [
   {
     label: "Research — any domain",
     cards: [
@@ -97,17 +103,28 @@ const PAGE_GROUPS: { label: string; cards: PageCard[] }[] = [
         body: "Who links to a domain, what changed recently, and which pages attract links.",
         input: "input: a domain",
       },
+    ],
+  },
+  {
+    label: "AI Visibility — how assistants answer",
+    cards: [
       {
-        name: "Brand Lookup",
+        name: "Prompt Research",
         cost: true,
-        body: "How often ChatGPT and Google AI Overview mention a brand, in which prompts, and which sources they cite.",
-        input: "input: a brand name or domain",
+        body: "Questions people ask about a keyword, with ChatGPT's answers and the sources it cites. The questions come mostly from Google's “People also ask”, in US English.",
+        input: "input: a keyword",
       },
       {
         name: "Prompt Explorer",
         cost: true,
         body: "The same prompt through ChatGPT, Claude, Gemini and Perplexity at once, plus the sources each one cites.",
         input: "input: a prompt",
+      },
+      {
+        name: "Prompt Tracking",
+        cost: true,
+        body: "Asks your chosen prompts again on a schedule and tracks mentions, citations and competitors over time. The cost is shown before each collection.",
+        input: "input: prompts + a schedule",
       },
     ],
   },
@@ -141,7 +158,7 @@ const PAGE_GROUPS: { label: string; cards: PageCard[] }[] = [
     ],
   },
   {
-    label: "Agent and integrations",
+    label: "Agents and shared context",
     cards: [
       {
         name: "SAM",
@@ -150,10 +167,22 @@ const PAGE_GROUPS: { label: string; cards: PageCard[] }[] = [
         input: "chat inside a project",
       },
       {
-        name: "AI & MCP",
+        name: "Agent setup",
         cost: false,
-        body: `Connects Claude Code or Codex to your ${PRODUCT_NAME} instance — keyword research, SERP, domain and backlink tools straight from your editor.`,
+        body: `Connects Claude Code, Codex or another MCP client to your ${PRODUCT_NAME} instance, so research tools run straight from your editor or chat.`,
         input: "the app's MCP endpoint",
+      },
+      {
+        name: "Reports",
+        cost: false,
+        body: "HTML reports a connected agent saves into the project. Read, print or export them here; they are not written by hand.",
+        input: "written by an agent over MCP",
+      },
+      {
+        name: "Context",
+        cost: false,
+        body: "What the site does, its competitors and key pages. SAM and connected agents read it instead of guessing.",
+        input: "filled in by hand or by /seo-project-setup",
       },
     ],
   },
@@ -225,150 +254,56 @@ fetch("https://api.dataforseo.com/v3/appendix/user_data",
 # logs
 docker compose logs -f --tail 50`;
 
-function CostBadge({ cost }: { cost: boolean }) {
-  return cost ? (
-    <span className="badge badge-warning badge-sm shrink-0">costs credits</span>
-  ) : (
-    <span className="badge badge-success badge-sm shrink-0">free</span>
-  );
-}
+const CONTENT: GuideContent = {
+  costLabels: { paid: "costs credits", free: "free" },
+  organization: {
+    title: "How the app is organized",
+    intro: (
+      <>
+        Everything hangs off a <strong>project</strong>. A project is one domain
+        plus its country and language. Everything you save — keywords, rank
+        tracking, audits, the GSC connection — belongs to that project. Switch
+        between them from <strong>Projects</strong> in the top left.
+      </>
+    ),
+    menuIntro: (
+      <>
+        The left menu is split by <em>whose</em> domain is involved, which is
+        the single most useful thing to remember:
+      </>
+    ),
+    columns: ["Group", "Applies to", "Pages"],
+    rows: NAV_GROUPS,
+  },
+  steps: {
+    title: "Five steps, in this order",
+    intro:
+      "The order is not arbitrary: each step fills in data the next one uses.",
+    items: STEPS,
+  },
+  pages: {
+    title: "What each page does",
+    legend: ({ paid, free }) => (
+      <>
+        {paid} means the call goes to DataForSEO and draws down your balance.{" "}
+        {free} means a Google API or the local database.
+      </>
+    ),
+    groups: PAGE_GROUPS,
+  },
+  selfHost: {
+    trapsTitle: "Four things that surprise people",
+    traps: SELF_HOST_TRAPS,
+    commandsTitle: "Commands you will need",
+    commandsIntro: (
+      <>
+        All of them run from the folder that holds <code>compose.yaml</code>.
+      </>
+    ),
+    commands: COMMANDS,
+  },
+};
 
 export function UserGuide() {
-  // Docker/OAuth gotchas and terminal commands only apply to a self-hosted
-  // container; on the hosted service they would be actively misleading.
-  const isSelfHosted = !isHostedClientAuthMode();
-
-  return (
-    <div className="space-y-10">
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">How the app is organized</h2>
-        <p className="text-sm leading-relaxed text-base-content/80">
-          Everything hangs off a <strong>project</strong>. A project is one
-          domain plus its country and language. Everything you save — keywords,
-          rank tracking, audits, the GSC connection — belongs to that project.
-          Switch between them from <strong>Projects</strong> in the top left.
-        </p>
-        <p className="text-sm leading-relaxed text-base-content/80">
-          The left menu is split by <em>whose</em> domain is involved, which is
-          the single most useful thing to remember:
-        </p>
-        <div className="overflow-x-auto rounded-lg border border-base-300">
-          <table className="table table-sm">
-            <thead>
-              <tr>
-                <th>Group</th>
-                <th>Applies to</th>
-                <th>Pages</th>
-              </tr>
-            </thead>
-            <tbody>
-              {NAV_GROUPS.map((row) => (
-                <tr key={row.group}>
-                  <td className="font-medium whitespace-nowrap">{row.group}</td>
-                  <td className="text-base-content/70">{row.scope}</td>
-                  <td className="text-base-content/70">{row.pages}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">Five steps, in this order</h2>
-        <p className="text-sm leading-relaxed text-base-content/80">
-          The order is not arbitrary: each step fills in data the next one uses.
-        </p>
-        <ol className="space-y-3">
-          {STEPS.map((step, index) => (
-            <li
-              key={step.title}
-              className="flex gap-3 rounded-lg border border-base-300 p-4"
-            >
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                {index + 1}
-              </span>
-              <div className="space-y-1">
-                <h3 className="font-semibold">{step.title}</h3>
-                <p className="text-sm leading-relaxed text-base-content/70">
-                  {step.body}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold">What each page does</h2>
-        <p className="text-sm leading-relaxed text-base-content/80">
-          <span className="badge badge-warning badge-sm">costs credits</span>{" "}
-          means the call goes to DataForSEO and draws down your balance.{" "}
-          <span className="badge badge-success badge-sm">free</span> means a
-          Google API or the local database.
-        </p>
-
-        {PAGE_GROUPS.map((group) => (
-          <div key={group.label} className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-widest text-base-content/40">
-              {group.label}
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {group.cards.map((card) => (
-                <div
-                  key={card.name}
-                  className="space-y-1.5 rounded-lg border border-base-300 p-4"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold">{card.name}</h3>
-                    <CostBadge cost={card.cost} />
-                  </div>
-                  <p className="text-sm leading-relaxed text-base-content/70">
-                    {card.body}
-                  </p>
-                  <p className="font-mono text-xs text-base-content/50">
-                    {card.input}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {isSelfHosted ? (
-        <>
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold">
-              Four things that surprise people
-            </h2>
-            <div className="space-y-3">
-              {SELF_HOST_TRAPS.map((trap, index) => (
-                <div
-                  key={index}
-                  className="space-y-1 rounded-lg border-l-2 border-warning bg-base-200/40 p-4"
-                >
-                  <h3 className="font-semibold">{trap.title}</h3>
-                  <p className="text-sm leading-relaxed text-base-content/70">
-                    {trap.body}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold">Commands you will need</h2>
-            <p className="text-sm leading-relaxed text-base-content/80">
-              All of them run from the folder that holds{" "}
-              <code>compose.yaml</code>.
-            </p>
-            <pre className="overflow-x-auto rounded-lg border border-base-300 bg-base-200 p-4 text-xs leading-relaxed">
-              <code>{COMMANDS}</code>
-            </pre>
-          </section>
-        </>
-      ) : null}
-    </div>
-  );
+  return <GuideView content={CONTENT} />;
 }
