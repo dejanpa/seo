@@ -8,6 +8,7 @@ import {
   plans,
 } from "@/db/schema";
 import { addOneMonth } from "@/server/billing/local/period";
+import { LocalPlanAdminRepository } from "@/server/billing/local/plan-admin-repository";
 
 type PlanRow = typeof plans.$inferSelect;
 
@@ -200,10 +201,59 @@ async function rollExpiredPeriod(args: {
 }
 
 /**
- * Deduct a spend and record it. The balance columns are updated with SQL
- * arithmetic rather than a read-modify-write so concurrent spends cannot lose
- * each other's deductions. Balances can go slightly negative under a race; the
- * gate that runs before the spend is what keeps that bounded.
+ * Set credits aside for a provider call, but only if the balances are still
+ * the ones the caller read: a compare-and-set, so concurrent holds cannot both
+ * spend the same credits. Returns false when another write got there first
+ * and the caller should re-read and retry.
+ *
+ * The ledger row follows the update rather than sharing a batch with it,
+ * because neither D1 nor Postgres can make an insert conditional on another
+ * statement's match count. A crash between the two leaves credits held with no
+ * ledger row: the customer is never under-charged, only over-held.
+ */
+async function holdCredits(args: {
+  organizationId: string;
+  expectedMonthly: number;
+  expectedTopup: number;
+  monthlyDeduct: number;
+  topupDeduct: number;
+  creditFeature: string | null;
+}): Promise<boolean> {
+  const held = await db
+    .update(organizationSubscriptions)
+    .set({
+      monthlyRemaining: args.expectedMonthly - args.monthlyDeduct,
+      topupRemaining: args.expectedTopup - args.topupDeduct,
+      updatedAt: nowIso(),
+    })
+    .where(
+      and(
+        eq(organizationSubscriptions.organizationId, args.organizationId),
+        eq(organizationSubscriptions.monthlyRemaining, args.expectedMonthly),
+        eq(organizationSubscriptions.topupRemaining, args.expectedTopup),
+      ),
+    )
+    .returning({ organizationId: organizationSubscriptions.organizationId });
+  if (held.length === 0) return false;
+
+  await db.insert(creditLedgerEntries).values(
+    ledgerValues({
+      organizationId: args.organizationId,
+      kind: "spend",
+      monthlyDelta: -args.monthlyDeduct,
+      topupDelta: -args.topupDeduct,
+      creditFeature: args.creditFeature,
+      note: "Held for a provider call",
+    }),
+  );
+  return true;
+}
+
+/**
+ * Deduct a spend and record it; negative deducts return credits, which is how
+ * a hold is settled down to the real cost. The balance columns are updated
+ * with SQL arithmetic rather than a read-modify-write so concurrent spends
+ * cannot lose each other's deductions.
  */
 async function recordSpend(args: {
   organizationId: string;
@@ -247,98 +297,6 @@ async function listLedgerEntries(organizationId: string, limit = 100) {
 // Operator writes. Only the admin console calls these; the request hot path
 // above never mutates plans.
 // ---------------------------------------------------------------------------
-
-async function createPlan(input: {
-  slug: string;
-  name: string;
-  description?: string | null;
-  monthlyCredits: number;
-  priceUsdCents: number;
-  sortOrder: number;
-  featureKeys: readonly string[];
-}) {
-  const id = crypto.randomUUID();
-  await runBatch((tx) => [
-    tx.insert(plans).values({
-      id,
-      slug: input.slug,
-      name: input.name,
-      description: input.description ?? null,
-      monthlyCredits: input.monthlyCredits,
-      priceUsdCents: input.priceUsdCents,
-      sortOrder: input.sortOrder,
-    }),
-    ...input.featureKeys.map((featureKey) =>
-      tx
-        .insert(planFeatures)
-        .values({ id: crypto.randomUUID(), planId: id, featureKey }),
-    ),
-  ]);
-  return id;
-}
-
-async function updatePlan(
-  planId: string,
-  input: {
-    name: string;
-    description?: string | null;
-    monthlyCredits: number;
-    priceUsdCents: number;
-    sortOrder: number;
-  },
-) {
-  await db
-    .update(plans)
-    .set({
-      name: input.name,
-      description: input.description ?? null,
-      monthlyCredits: input.monthlyCredits,
-      priceUsdCents: input.priceUsdCents,
-      sortOrder: input.sortOrder,
-      updatedAt: nowIso(),
-    })
-    .where(eq(plans.id, planId));
-}
-
-/** Replaces a plan's granted features wholesale — the admin form submits the
- *  complete set, so a delete-then-insert keeps it simple and idempotent. */
-async function setPlanFeatures(planId: string, featureKeys: readonly string[]) {
-  await runBatch((tx) => [
-    tx.delete(planFeatures).where(eq(planFeatures.planId, planId)),
-    ...featureKeys.map((featureKey) =>
-      tx
-        .insert(planFeatures)
-        .values({ id: crypto.randomUUID(), planId, featureKey }),
-    ),
-  ]);
-}
-
-/** Exactly one plan is the default; clearing the others happens in the same
- *  atomic write so a failure cannot leave two (or zero) defaults behind. */
-async function setDefaultPlan(planId: string) {
-  await runBatch((tx) => [
-    tx.update(plans).set({ isDefault: false, updatedAt: nowIso() }),
-    tx
-      .update(plans)
-      .set({ isDefault: true, updatedAt: nowIso() })
-      .where(eq(plans.id, planId)),
-  ]);
-}
-
-async function setPlanArchived(planId: string, archived: boolean) {
-  await db
-    .update(plans)
-    .set({ archivedAt: archived ? nowIso() : null, updatedAt: nowIso() })
-    .where(eq(plans.id, planId));
-}
-
-async function countSubscriptionsOnPlan(planId: string) {
-  const rows = await db
-    .select({ organizationId: organizationSubscriptions.organizationId })
-    .from(organizationSubscriptions)
-    .where(eq(organizationSubscriptions.planId, planId));
-  return rows.length;
-}
 
 /**
  * Move an organization onto a plan. `resetCredits` starts a fresh period with
@@ -432,6 +390,7 @@ async function setSubscriptionStatus(args: {
 }
 
 export const LocalBillingRepository = {
+  ...LocalPlanAdminRepository,
   listPlans,
   getPlanById,
   getPlanBySlug,
@@ -441,14 +400,9 @@ export const LocalBillingRepository = {
   getSubscription,
   createSubscription,
   rollExpiredPeriod,
+  holdCredits,
   recordSpend,
   listLedgerEntries,
-  createPlan,
-  updatePlan,
-  setPlanFeatures,
-  setDefaultPlan,
-  setPlanArchived,
-  countSubscriptionsOnPlan,
   assignPlan,
   adjustCredits,
   setSubscriptionStatus,

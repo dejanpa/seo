@@ -11,6 +11,7 @@ const repository = vi.hoisted(() => ({
   createSubscription: vi.fn(),
   rollExpiredPeriod: vi.fn(),
   listPlanFeatureKeys: vi.fn(),
+  holdCredits: vi.fn(),
   recordSpend: vi.fn(),
   nowIso: () => "2026-06-01T00:00:00.000Z",
 }));
@@ -22,8 +23,8 @@ vi.mock("@/server/billing/local/repository", () => ({
 vi.mock("@/server/lib/posthog", () => ({ captureServerEvent: vi.fn() }));
 
 import {
-  assertUsageCreditsAvailable,
   customerHasPaidPlan,
+  reserveUsageCredits,
   trackUsageCreditSpend,
 } from "./subscription";
 
@@ -34,6 +35,10 @@ const PLAN = {
 };
 
 const ORG = "org_1";
+
+const reserve = (
+  creditFeature: Parameters<typeof reserveUsageCredits>[0]["creditFeature"],
+) => reserveUsageCredits({ customerId: ORG, creditFeature, estimateUsd: 0.01 });
 
 function subscription(overrides: Record<string, unknown> = {}) {
   return {
@@ -58,26 +63,27 @@ describe("local billing entitlements", () => {
       "paid_plan",
       "keyword_research",
     ]);
+    repository.holdCredits.mockResolvedValue(true);
   });
 
   it("refuses a feature the plan does not grant", async () => {
-    await expect(
-      assertUsageCreditsAvailable(ORG, "backlinks"),
-    ).rejects.toMatchObject({ code: "PAYMENT_REQUIRED" });
+    await expect(reserve("backlinks")).rejects.toMatchObject({
+      code: "PAYMENT_REQUIRED",
+    });
   });
 
   it("allows a feature the plan grants", async () => {
-    await expect(
-      assertUsageCreditsAvailable(ORG, "keyword_research"),
-    ).resolves.toEqual({ monthlyRemaining: 5_000 });
+    await expect(reserve("keyword_research")).resolves.toMatchObject({
+      customerId: ORG,
+    });
   });
 
   // Onboarding spend happens before the user has any plan to be granted
   // features on, so it must never be gated on one.
   it("does not gate onboarding spend on a plan feature", async () => {
-    await expect(
-      assertUsageCreditsAvailable(ORG, "onboarding"),
-    ).resolves.toEqual({ monthlyRemaining: 5_000 });
+    await expect(reserve("onboarding")).resolves.toMatchObject({
+      customerId: ORG,
+    });
   });
 
   it("refuses everything while the workspace is suspended", async () => {
@@ -85,9 +91,9 @@ describe("local billing entitlements", () => {
       subscription({ status: "suspended" }),
     );
 
-    await expect(
-      assertUsageCreditsAvailable(ORG, "keyword_research"),
-    ).rejects.toMatchObject({ code: "PAYMENT_REQUIRED" });
+    await expect(reserve("keyword_research")).rejects.toMatchObject({
+      code: "PAYMENT_REQUIRED",
+    });
     await expect(customerHasPaidPlan(ORG)).resolves.toBe(false);
   });
 
@@ -96,9 +102,9 @@ describe("local billing entitlements", () => {
       subscription({ monthlyRemaining: 0, topupRemaining: 0 }),
     );
 
-    await expect(
-      assertUsageCreditsAvailable(ORG, "keyword_research"),
-    ).rejects.toMatchObject({ code: "INSUFFICIENT_CREDITS" });
+    await expect(reserve("keyword_research")).rejects.toMatchObject({
+      code: "INSUFFICIENT_CREDITS",
+    });
   });
 
   it("still serves a workspace whose monthly credits ran out but has top-up left", async () => {
@@ -106,9 +112,9 @@ describe("local billing entitlements", () => {
       subscription({ monthlyRemaining: 0, topupRemaining: 900 }),
     );
 
-    await expect(
-      assertUsageCreditsAvailable(ORG, "keyword_research"),
-    ).resolves.toEqual({ monthlyRemaining: 0 });
+    await expect(reserve("keyword_research")).resolves.toMatchObject({
+      heldMonthly: 0,
+    });
   });
 
   it("renews an expired period before answering", async () => {
@@ -122,9 +128,9 @@ describe("local billing entitlements", () => {
       subscription({ monthlyRemaining: PLAN.monthlyCredits }),
     );
 
-    await expect(
-      assertUsageCreditsAvailable(ORG, "keyword_research"),
-    ).resolves.toEqual({ monthlyRemaining: PLAN.monthlyCredits });
+    await expect(reserve("keyword_research")).resolves.toMatchObject({
+      heldTopup: 0,
+    });
   });
 });
 

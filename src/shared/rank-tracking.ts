@@ -57,7 +57,10 @@ export const rankCheckCostApprovalError = (
 // ---------------------------------------------------------------------------
 
 /** DataForSEO cost for a single SERP request at the given depth. */
-function costPerSerpAtDepth(depth: number, method: RankCheckMethod): number {
+export function costPerSerpAtDepth(
+  depth: number,
+  method: RankCheckMethod,
+): number {
   const pages = depth / 10;
   return method === "queued"
     ? QUEUED_BASE_PAGE_COST_USD + (pages - 1) * QUEUED_EXTRA_PAGE_COST_USD

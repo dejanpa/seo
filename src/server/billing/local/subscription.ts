@@ -1,8 +1,4 @@
-import {
-  AUTUMN_SEO_DATA_CREDITS_PER_USD,
-  SEO_DATA_COST_MARKUP,
-  roundUsdForBilling,
-} from "@/shared/billing";
+import { applyBillingMarkupUsd, creditsForProviderUsd } from "@/shared/billing";
 import type { CreditFeature } from "@/shared/billing-credit-features";
 import {
   PLAN_FEATURE_KEYS,
@@ -10,7 +6,10 @@ import {
   toolFeatureKeyFor,
   type PlanFeatureKey,
 } from "@/shared/plan-features";
-import type { BillingCustomerContext } from "@/server/billing/types";
+import type {
+  BillingCustomerContext,
+  UsageCreditHold,
+} from "@/server/billing/types";
 import { LocalBillingRepository } from "@/server/billing/local/repository";
 import { captureServerEvent } from "@/server/lib/posthog";
 import { AppError } from "@/server/lib/errors";
@@ -125,18 +124,10 @@ export async function listGrantedFeatureKeys(
   return PLAN_FEATURE_KEYS.filter((key) => account.features.has(key));
 }
 
-/**
- * Gate before any billable provider call: refuses when the organization is
- * suspended, when its plan does not include the feature being used, or when its
- * credits are exhausted. Returns the monthly balance so the caller can split a
- * later spend monthly-first.
- */
-export async function assertUsageCreditsAvailable(
-  customerId: string,
+function assertAccountCanSpend(
+  account: LocalBillingAccount,
   creditFeature?: CreditFeature,
-): Promise<{ monthlyRemaining: number }> {
-  const account = await loadAccount(customerId);
-
+) {
   if (account.status !== "active") {
     throw new AppError(
       "PAYMENT_REQUIRED",
@@ -151,12 +142,68 @@ export async function assertUsageCreditsAvailable(
       `The ${account.planSlug} plan does not include ${planFeatureLabel(toolKey)}.`,
     );
   }
+}
 
-  if (account.monthlyRemaining + account.topupRemaining <= 0) {
-    throw new AppError("INSUFFICIENT_CREDITS");
+// Compare-and-set attempts before giving up on a hold. Each retry means another
+// call on the same workspace changed the balance in between, so a few cover any
+// realistic burst.
+const HOLD_ATTEMPTS = 5;
+
+/**
+ * Gate before any billable provider call: refuses when the organization is
+ * suspended, when its plan does not include the feature being used, or when its
+ * balances cannot cover the call's estimated cost. Otherwise takes that
+ * estimate off the balance (monthly credits first) before the call runs, so
+ * concurrent calls cannot together spend more than the organization has.
+ */
+export async function reserveUsageCredits(args: {
+  customerId: string;
+  creditFeature?: CreditFeature;
+  estimateUsd: number;
+}): Promise<UsageCreditHold> {
+  const account = await loadAccount(args.customerId);
+  assertAccountCanSpend(account, args.creditFeature);
+
+  const credits = Math.max(1, creditsForProviderUsd(args.estimateUsd));
+  let monthly = account.monthlyRemaining;
+  let topup = account.topupRemaining;
+
+  for (let attempt = 0; attempt < HOLD_ATTEMPTS; attempt++) {
+    if (monthly + topup < credits) {
+      throw new AppError("INSUFFICIENT_CREDITS");
+    }
+    const monthlyDeduct = Math.min(Math.max(monthly, 0), credits);
+    const topupDeduct = credits - monthlyDeduct;
+
+    const held = await LocalBillingRepository.holdCredits({
+      organizationId: args.customerId,
+      expectedMonthly: monthly,
+      expectedTopup: topup,
+      monthlyDeduct,
+      topupDeduct,
+      creditFeature: args.creditFeature ?? null,
+    });
+    if (held) {
+      return {
+        customerId: args.customerId,
+        heldMonthly: monthlyDeduct,
+        heldTopup: topupDeduct,
+        monthlyRemaining: monthly - monthlyDeduct,
+      };
+    }
+
+    const current = await LocalBillingRepository.getSubscription(
+      args.customerId,
+    );
+    if (!current) break;
+    monthly = current.monthlyRemaining;
+    topup = current.topupRemaining;
   }
 
-  return { monthlyRemaining: account.monthlyRemaining };
+  throw new AppError(
+    "CONFLICT",
+    "Too many requests are spending credits at once. Try again.",
+  );
 }
 
 export async function checkUsageCreditsDepleted(
@@ -197,10 +244,8 @@ export async function trackUsageCreditSpend(args: {
   monthlyRemaining: number;
   properties?: Record<string, unknown>;
 }): Promise<void> {
-  const totalCostUsd = roundUsdForBilling(args.costUsd * SEO_DATA_COST_MARKUP);
-  const totalCostCredits = Math.ceil(
-    totalCostUsd * AUTUMN_SEO_DATA_CREDITS_PER_USD,
-  );
+  const totalCostUsd = applyBillingMarkupUsd(args.costUsd);
+  const totalCostCredits = creditsForProviderUsd(args.costUsd);
   if (totalCostCredits <= 0) return;
 
   const monthlyDeduct = Math.min(
@@ -228,6 +273,65 @@ export async function trackUsageCreditSpend(args: {
       topup_credits: topupDeduct,
       total_credits: totalCostCredits,
       cost_usd: totalCostUsd,
+    },
+  });
+}
+
+/**
+ * Settle a hold against the cost DataForSEO reported: returns the unused part
+ * of the hold (top-up first, since top-up credits roll over), or charges the
+ * shortfall when the estimate undershot. Always writes a ledger row, so every
+ * call's real cost is on record even when the hold was exact.
+ */
+export async function settleUsageCredits(args: {
+  customer: BillingCustomerContext;
+  hold: UsageCreditHold;
+  creditFeature: CreditFeature;
+  costUsd: number;
+  properties?: Record<string, unknown>;
+}): Promise<void> {
+  const { hold } = args;
+  const actualCredits = creditsForProviderUsd(args.costUsd);
+  const heldCredits = hold.heldMonthly + hold.heldTopup;
+  const difference = actualCredits - heldCredits;
+
+  let monthlyDeduct = 0;
+  let topupDeduct = 0;
+  if (difference < 0) {
+    const refund = -difference;
+    topupDeduct = -Math.min(hold.heldTopup, refund);
+    monthlyDeduct = -(refund + topupDeduct);
+  } else if (difference > 0) {
+    console.warn(
+      `[billing] DataForSEO cost ${args.costUsd} USD exceeded its hold by ${difference} credits`,
+      args.properties,
+    );
+    monthlyDeduct = Math.min(Math.max(hold.monthlyRemaining, 0), difference);
+    topupDeduct = difference - monthlyDeduct;
+  }
+
+  const totalCostUsd = applyBillingMarkupUsd(args.costUsd);
+  await LocalBillingRepository.recordSpend({
+    organizationId: hold.customerId,
+    monthlyDeduct,
+    topupDeduct,
+    creditFeature: args.creditFeature,
+    costUsd: totalCostUsd,
+  });
+
+  if (actualCredits <= 0) return;
+  await captureServerEvent({
+    distinctId: args.customer.userId,
+    event: "usage:credits_consume",
+    organizationId: args.customer.organizationId,
+    properties: {
+      project_id: args.customer.projectId,
+      credit_feature: args.creditFeature,
+      monthly_credits: hold.heldMonthly + monthlyDeduct,
+      topup_credits: hold.heldTopup + topupDeduct,
+      total_credits: actualCredits,
+      cost_usd: totalCostUsd,
+      ...args.properties,
     },
   });
 }

@@ -4,6 +4,7 @@ import { isLocalBillingProvider } from "@/server/billing/provider";
 import type {
   BillingCustomerContext,
   BillingProviderApi,
+  UsageCreditHold,
 } from "@/server/billing/types";
 
 export type { BillingCustomerContext };
@@ -51,14 +52,16 @@ export async function listGrantedFeatureKeys(
   return (await provider()).listGrantedFeatureKeys(customerId);
 }
 
-export async function assertUsageCreditsAvailable(
-  customerId: string,
-  creditFeature?: CreditFeature,
-): Promise<{ monthlyRemaining: number }> {
-  return (await provider()).assertUsageCreditsAvailable(
-    customerId,
-    creditFeature,
-  );
+export async function reserveUsageCredits(
+  args: Parameters<BillingProviderApi["reserveUsageCredits"]>[0],
+): Promise<UsageCreditHold> {
+  return (await provider()).reserveUsageCredits(args);
+}
+
+export async function settleUsageCredits(
+  args: Parameters<BillingProviderApi["settleUsageCredits"]>[0],
+): Promise<void> {
+  return (await provider()).settleUsageCredits(args);
 }
 
 export async function checkUsageCreditsDepleted(

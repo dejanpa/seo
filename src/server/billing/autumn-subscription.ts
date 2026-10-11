@@ -13,7 +13,10 @@ import { PLAN_FEATURE_KEYS, type PlanFeatureKey } from "@/shared/plan-features";
 import { autumn, AUTUMN_TRACK_RETRY_OPTIONS } from "@/server/billing/autumn";
 import { captureServerEvent } from "@/server/lib/posthog";
 import { AppError } from "@/server/lib/errors";
-import type { BillingCustomerContext } from "@/server/billing/types";
+import type {
+  BillingCustomerContext,
+  UsageCreditHold,
+} from "@/server/billing/types";
 
 // Existence is monotonic and the Autumn customer id is always the org id we
 // pass, so once we've confirmed a customer exists we can skip the round trip
@@ -226,6 +229,46 @@ export async function assertUsageCreditsAvailable(
   }
 
   return { monthlyRemaining };
+}
+
+/**
+ * Autumn side of the hold/settle contract. This fork does not use Autumn's
+ * balance lock (upstream open-seo does, since #685), so nothing is actually
+ * held: this is the old balance check, and concurrent calls can still overdraw
+ * an Autumn balance. The local provider is the one that holds atomically.
+ */
+export async function reserveUsageCredits(args: {
+  customerId: string;
+  creditFeature?: CreditFeature;
+  estimateUsd: number;
+}): Promise<UsageCreditHold> {
+  const { monthlyRemaining } = await assertUsageCreditsAvailable(
+    args.customerId,
+    args.creditFeature,
+  );
+  return {
+    customerId: args.customerId,
+    heldMonthly: 0,
+    heldTopup: 0,
+    monthlyRemaining,
+  };
+}
+
+export async function settleUsageCredits(args: {
+  customer: BillingCustomerContext;
+  hold: UsageCreditHold;
+  creditFeature: CreditFeature;
+  costUsd: number;
+  properties?: Record<string, unknown>;
+}): Promise<void> {
+  await trackUsageCreditSpend({
+    customer: args.customer,
+    customerId: args.hold.customerId,
+    creditFeature: args.creditFeature,
+    costUsd: args.costUsd,
+    monthlyRemaining: args.hold.monthlyRemaining,
+    properties: args.properties,
+  });
 }
 
 /**
