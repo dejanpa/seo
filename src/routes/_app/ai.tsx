@@ -114,9 +114,8 @@ function AiPage() {
                   </CardTitle>
                   <CardDescription>
                     Paste the setup prompt into your agent to connect{" "}
-                    {PRODUCT_NAME}
-                    and install its SEO skills. It will guide you through any
-                    manual steps.
+                    {PRODUCT_NAME} and install its SEO skills. It will guide you
+                    through any manual steps.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
