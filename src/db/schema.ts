@@ -1,6 +1,8 @@
 import { getDatabaseProvider } from "./provider";
 import * as sqliteApp from "./app.schema";
 import * as sqliteProjectContext from "./project-context.schema";
+import * as sqliteReports from "./reports.schema";
+import * as sqliteReportTemplates from "./report-templates.schema";
 import * as sqliteAudit from "./audit.schema";
 import * as sqliteSam from "./sam.schema";
 import * as sqliteAuth from "./better-auth-schema";
@@ -10,8 +12,11 @@ import * as sqliteLoginEvents from "./login-events.schema";
 import * as sqliteGa4 from "./ga4.schema";
 import * as sqliteGsc from "./gsc.schema";
 import * as sqliteTelemetry from "./telemetry.schema";
+import * as sqliteAiVisibility from "./ai-visibility.schema";
 import * as pgApp from "./pg/app.schema";
 import * as pgProjectContext from "./pg/project-context.schema";
+import * as pgReports from "./pg/reports.schema";
+import * as pgReportTemplates from "./pg/report-templates.schema";
 import * as pgAudit from "./pg/audit.schema";
 import * as pgSam from "./pg/sam.schema";
 import * as pgAuth from "./pg/better-auth-schema";
@@ -21,6 +26,7 @@ import * as pgLoginEvents from "./pg/login-events.schema";
 import * as pgGa4 from "./pg/ga4.schema";
 import * as pgGsc from "./pg/gsc.schema";
 import * as pgTelemetry from "./pg/telemetry.schema";
+import * as pgAiVisibility from "./pg/ai-visibility.schema";
 
 // Canonical schema barrel. Repositories import their tables from here and the
 // provider-aware `db` from "@/db", so each repository is written ONCE for both
@@ -34,6 +40,8 @@ import * as pgTelemetry from "./pg/telemetry.schema";
 // parity test is its drift guard.
 type AppSchema = typeof sqliteApp &
   typeof sqliteProjectContext &
+  typeof sqliteReports &
+  typeof sqliteReportTemplates &
   typeof sqliteAudit &
   typeof sqliteSam &
   typeof sqliteAuth &
@@ -42,13 +50,16 @@ type AppSchema = typeof sqliteApp &
   typeof sqliteLoginEvents &
   typeof sqliteGa4 &
   typeof sqliteGsc &
-  typeof sqliteTelemetry;
+  typeof sqliteTelemetry &
+  typeof sqliteAiVisibility;
 
 const runtimeSchema =
   getDatabaseProvider() === "postgres"
     ? {
         ...pgApp,
         ...pgProjectContext,
+        ...pgReports,
+        ...pgReportTemplates,
         ...pgAudit,
         ...pgSam,
         ...pgAuth,
@@ -58,10 +69,13 @@ const runtimeSchema =
         ...pgGa4,
         ...pgGsc,
         ...pgTelemetry,
+        ...pgAiVisibility,
       }
     : {
         ...sqliteApp,
         ...sqliteProjectContext,
+        ...sqliteReports,
+        ...sqliteReportTemplates,
         ...sqliteAudit,
         ...sqliteSam,
         ...sqliteAuth,
@@ -71,6 +85,7 @@ const runtimeSchema =
         ...sqliteGa4,
         ...sqliteGsc,
         ...sqliteTelemetry,
+        ...sqliteAiVisibility,
       };
 
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- guarded by schema-parity.test.ts
@@ -89,11 +104,16 @@ export const {
   rankSnapshots,
   organizationActivationState,
   projectActivationState,
+  dashboardStepDismissals,
   backlinkSnapshots,
+  dataRefreshClaims,
+  crawlerCredentials,
   projectContextSections,
   projectCompetitors,
   projectKeyPages,
   projectResearchLog,
+  reports,
+  reportTemplates,
   audits,
   auditPages,
   auditIssues,
@@ -116,4 +136,10 @@ export const {
   ga4Connections,
   gscConnections,
   telemetryState,
+  aiTrackers,
+  aiPrompts,
+  aiRuns,
+  aiObservations,
+  aiSources,
+  aiMatches,
 } = schema;

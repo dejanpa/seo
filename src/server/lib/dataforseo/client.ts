@@ -1,68 +1,111 @@
+/* eslint-disable max-lines -- the metered DataForSEO client: one entry per endpoint, each with its price and credit feature */
+import { waitUntil } from "cloudflare:workers";
 import {
   type CreditFeature,
   mapDataforseoPathToCreditFeature,
 } from "@/shared/billing-credit-features";
+import { creditsForProviderUsd } from "@/shared/billing";
 import {
   getOrCreateOrganizationCustomer,
   reserveUsageCredits,
   settleUsageCredits,
 } from "@/server/billing/subscription";
 import type { BillingCustomerContext } from "@/server/billing/subscription";
-// Type-only namespace import: erased at compile, so the section modules (and
-// the SDK they pull in) still only load through loadDataforseoSections below.
-import type * as sections from "@/server/lib/dataforseo/sections";
 import {
   DataforseoChargedTaskError,
   type DataforseoApiCallCost,
   type DataforseoApiResponse,
 } from "@/server/lib/dataforseo/envelope";
-import * as pricing from "@/server/lib/dataforseo/pricing";
+import { dataforseoPricing } from "@/server/lib/dataforseo/pricing";
+import {
+  fetchBusinessListingsSearch,
+  fetchMyBusinessInfo,
+  fetchQuestionsAnswers,
+  postGoogleReviewsTask,
+  postMyBusinessUpdatesTask,
+} from "@/server/lib/dataforseo/business";
+import {
+  fetchBacklinksHistory,
+  fetchBacklinksRows,
+  fetchBacklinksSummary,
+  fetchDomainPagesSummary,
+  fetchReferringDomains,
+} from "@/server/lib/dataforseo/backlinks";
+import {
+  fetchDomainRankOverview,
+  fetchKeywordIdeas,
+  fetchKeywordOverview,
+  fetchKeywordSuggestions,
+  fetchRankedKeywords,
+  fetchRelatedKeywords,
+  fetchRelevantPages,
+  fetchSerpCompetitors,
+} from "@/server/lib/dataforseo/labs";
+import {
+  fetchDemography,
+  fetchGoogleTrends,
+  fetchSubregionInterests,
+} from "@/server/lib/dataforseo/trends";
+import {
+  fetchAutocomplete,
+  fetchBulkKeywordDifficulty,
+  fetchHistoricalKeywordData,
+  fetchSearchIntent,
+} from "@/server/lib/dataforseo/keyword-signals";
+import {
+  fetchAdsKeywordIdeas,
+  fetchAdsSearchVolume,
+} from "@/server/lib/dataforseo/google-ads";
+import {
+  fetchLiveSerp,
+  fetchLocalSerp,
+  fetchRankCheckSerp,
+  postLocalSerpTasks,
+  postRankCheckTasks,
+} from "@/server/lib/dataforseo/serp";
+import { fetchLighthouseResult } from "@/server/lib/dataforseo/lighthouse";
+import {
+  fetchLlmAggregatedMetrics,
+  fetchLlmCrossAggregatedMetrics,
+  fetchLlmMentionsSearch,
+  fetchLlmResponse,
+  fetchLlmTopPages,
+} from "@/server/lib/dataforseo/ai";
+import {
+  fetchAiTrackingLiveAnswer,
+  postAiTrackingTasks,
+} from "@/server/lib/dataforseo/ai-tracking";
 import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
 import { AppError } from "@/server/lib/errors";
 
 export { mapDataforseoPathToCreditFeature };
 
-/** The section-fetcher barrel (sections.ts), as a type for `meter` pickers. */
-export type DataforseoSections = typeof sections;
-
-let sectionsPromise: Promise<DataforseoSections> | undefined;
-
-/** Single lazy boundary for the DataForSEO subtree: the section fetchers and
- * the ~3 MB dataforseo-client SDK they statically import stay out of the
- * eager isolate startup graph and load once, on the first API call. */
-export function loadDataforseoSections(): Promise<DataforseoSections> {
-  return (sectionsPromise ??= import("@/server/lib/dataforseo/sections"));
-}
-
 /**
  * Wraps a section fetcher with billing metering. Each entry on the client is
- * `meter(customer, (s) => s.fetchX, defaultFeature?)`, which returns a function
- * with the fetcher's own input type and resolves to its unwrapped `.data`. The
- * picker indirection (rather than the fetcher itself) keeps the section
- * modules behind loadDataforseoSections.
+ * `meter(customer, fetchX, dataforseoPricing.section.x, defaultFeature?)`,
+ * which returns a function with the fetcher's own input type and resolves to
+ * its unwrapped `.data`.
+ *
+ * `estimateRawUsd` is required: it is the upper bound reserved before the
+ * call, so an entry cannot be added without a price (see pricing.ts).
  *
  * `defaultFeature` is the fallback credit feature; a caller can override it per
  * call by passing `creditFeature` in the input (e.g. an MCP tool attributing
  * spend to its own feature). The extra field is ignored by the fetchers, which
  * read named fields rather than spreading the input.
- *
- * `estimateUsd` is the raw-USD upper bound held before the call (see
- * pricing.ts). It is required, so an entry without a price does not compile.
  */
 function meter<I, T>(
   customer: BillingCustomerContext,
-  pick: (
-    sections: DataforseoSections,
-  ) => (input: I) => Promise<DataforseoApiResponse<T>>,
-  defaultFeature: CreditFeature,
-  estimateUsd: (input: I) => number,
+  fetcher: (input: I) => Promise<DataforseoApiResponse<T>>,
+  estimateRawUsd: (input: I) => number,
+  defaultFeature?: CreditFeature,
 ): (input: I & { creditFeature?: CreditFeature }) => Promise<T> {
   return (input) =>
     meterDataforseoCall(
       customer,
-      async () => pick(await loadDataforseoSections())(input),
+      () => fetcher(input),
+      creditsForProviderUsd(estimateRawUsd(input)),
       input.creditFeature ?? defaultFeature,
-      () => estimateUsd(input),
     );
 }
 
@@ -71,199 +114,206 @@ export function createDataforseoClient(customer: BillingCustomerContext) {
     business: {
       businessListings: meter(
         customer,
-        (s) => s.fetchBusinessListingsSearch,
+        fetchBusinessListingsSearch,
+        dataforseoPricing.business.businessListings,
         "local_seo",
-        (input) => pricing.businessListingsUsd(input.limit),
       ),
       questionsAnswers: meter(
         customer,
-        (s) => s.fetchQuestionsAnswers,
+        fetchQuestionsAnswers,
+        dataforseoPricing.business.questionsAnswers,
         "local_seo",
-        (input) => pricing.questionsAnswersUsd(input.depth),
       ),
       myBusinessInfo: meter(
         customer,
-        (s) => s.fetchMyBusinessInfo,
+        fetchMyBusinessInfo,
+        dataforseoPricing.business.myBusinessInfo,
         "local_seo",
-        () => pricing.MY_BUSINESS_INFO_LIVE_USD,
       ),
       // task_post is where DataForSEO charges; collection runs unmetered
       // through fetchBusinessDataTaskResult (see index.ts).
       reviewsTaskPost: meter(
         customer,
-        (s) => s.postGoogleReviewsTask,
+        postGoogleReviewsTask,
+        dataforseoPricing.business.reviewsTaskPost,
         "local_seo",
-        (input) =>
-          pricing.reviewsTaskUsd(input.depth, input.includeOtherSources),
       ),
       updatesTaskPost: meter(
         customer,
-        (s) => s.postMyBusinessUpdatesTask,
+        postMyBusinessUpdatesTask,
+        dataforseoPricing.business.updatesTaskPost,
         "local_seo",
-        (input) => pricing.updatesTaskUsd(input.depth),
       ),
     },
     backlinks: {
       summary: meter(
         customer,
-        (s) => s.fetchBacklinksSummary,
+        fetchBacklinksSummary,
+        dataforseoPricing.backlinks.summary,
         "backlinks",
-        () => pricing.backlinksUsd(1),
       ),
       rows: meter(
         customer,
-        (s) => s.fetchBacklinksRows,
+        fetchBacklinksRows,
+        dataforseoPricing.backlinks.rows,
         "backlinks",
-        (input) => pricing.backlinksUsd(input.limit),
       ),
       referringDomains: meter(
         customer,
-        (s) => s.fetchReferringDomains,
+        fetchReferringDomains,
+        dataforseoPricing.backlinks.referringDomains,
         "backlinks",
-        (input) => pricing.backlinksUsd(input.limit),
       ),
       domainPages: meter(
         customer,
-        (s) => s.fetchDomainPagesSummary,
+        fetchDomainPagesSummary,
+        dataforseoPricing.backlinks.domainPages,
         "backlinks",
-        (input) => pricing.backlinksUsd(input.limit),
       ),
       history: meter(
         customer,
-        (s) => s.fetchBacklinksHistory,
+        fetchBacklinksHistory,
+        dataforseoPricing.backlinks.history,
         "backlinks",
-        (input) => pricing.backlinksHistoryUsd(input.dateFrom, input.dateTo),
       ),
     },
     keywords: {
       related: meter(
         customer,
-        (s) => s.fetchRelatedKeywords,
+        fetchRelatedKeywords,
+        dataforseoPricing.keywords.related,
         "keyword_research",
-        (input) => pricing.labsUsd(input.limit, input.includeClickstreamData),
       ),
       suggestions: meter(
         customer,
-        (s) => s.fetchKeywordSuggestions,
+        fetchKeywordSuggestions,
+        dataforseoPricing.keywords.suggestions,
         "keyword_research",
-        (input) => pricing.labsUsd(input.limit, input.includeClickstreamData),
       ),
       ideas: meter(
         customer,
-        (s) => s.fetchKeywordIdeas,
+        fetchKeywordIdeas,
+        dataforseoPricing.keywords.ideas,
         "keyword_research",
-        (input) => pricing.labsUsd(input.limit, input.includeClickstreamData),
       ),
       // Google Ads endpoints for countries Labs doesn't support.
       adsIdeas: meter(
         customer,
-        (s) => s.fetchAdsKeywordIdeas,
+        fetchAdsKeywordIdeas,
+        dataforseoPricing.keywords.adsIdeas,
         "keyword_research",
-        () => pricing.GOOGLE_ADS_LIVE_TASK_USD,
       ),
       adsSearchVolume: meter(
         customer,
-        (s) => s.fetchAdsSearchVolume,
+        fetchAdsSearchVolume,
+        dataforseoPricing.keywords.adsSearchVolume,
         "keyword_research",
-        () => pricing.GOOGLE_ADS_LIVE_TASK_USD,
       ),
       // Backfill for fields the expansion endpoints leave empty. Called only
       // when a row is actually missing one — see research/backfill.ts.
       searchIntent: meter(
         customer,
-        (s) => s.fetchSearchIntent,
+        fetchSearchIntent,
+        dataforseoPricing.keywords.searchIntent,
         "keyword_research",
-        (input) => pricing.labsUsd(input.keywords.length),
       ),
       bulkKeywordDifficulty: meter(
         customer,
-        (s) => s.fetchBulkKeywordDifficulty,
+        fetchBulkKeywordDifficulty,
+        dataforseoPricing.keywords.bulkKeywordDifficulty,
         "keyword_research",
-        (input) => pricing.labsUsd(input.keywords.length),
-      ),
-      googleTrends: meter(
-        customer,
-        (s) => s.fetchGoogleTrends,
-        "keyword_research",
-        () => pricing.GOOGLE_TRENDS_LIVE_USD,
-      ),
-      subregionInterests: meter(
-        customer,
-        (s) => s.fetchSubregionInterests,
-        "keyword_research",
-        () => pricing.GOOGLE_TRENDS_LIVE_USD,
-      ),
-      demography: meter(
-        customer,
-        (s) => s.fetchDemography,
-        "keyword_research",
-        () => pricing.GOOGLE_TRENDS_LIVE_USD,
-      ),
-      autocomplete: meter(
-        customer,
-        (s) => s.fetchAutocomplete,
-        "keyword_research",
-        () => pricing.AUTOCOMPLETE_LIVE_USD,
       ),
       history: meter(
         customer,
-        (s) => s.fetchHistoricalKeywordData,
+        fetchHistoricalKeywordData,
+        dataforseoPricing.keywords.history,
         "keyword_research",
-        () => pricing.labsUsd(1),
+      ),
+      googleTrends: meter(
+        customer,
+        fetchGoogleTrends,
+        dataforseoPricing.keywords.googleTrends,
+        "keyword_research",
+      ),
+      subregionInterests: meter(
+        customer,
+        fetchSubregionInterests,
+        dataforseoPricing.keywords.subregionInterests,
+        "keyword_research",
+      ),
+      demography: meter(
+        customer,
+        fetchDemography,
+        dataforseoPricing.keywords.demography,
+        "keyword_research",
+      ),
+      autocomplete: meter(
+        customer,
+        fetchAutocomplete,
+        dataforseoPricing.keywords.autocomplete,
+        "keyword_research",
       ),
     },
     domain: {
       rankOverview: meter(
         customer,
-        (s) => s.fetchDomainRankOverview,
+        fetchDomainRankOverview,
+        dataforseoPricing.domain.rankOverview,
         "domain_overview",
-        () => pricing.labsUsd(1),
       ),
       rankedKeywords: meter(
         customer,
-        (s) => s.fetchRankedKeywords,
+        fetchRankedKeywords,
+        dataforseoPricing.domain.rankedKeywords,
         "domain_overview",
-        (input) => pricing.labsUsd(input.limit),
       ),
       relevantPages: meter(
         customer,
-        (s) => s.fetchRelevantPages,
+        fetchRelevantPages,
+        dataforseoPricing.domain.relevantPages,
         "domain_overview",
-        (input) => pricing.labsUsd(input.limit),
       ),
     },
     serp: {
       live: meter(
         customer,
-        (s) => s.fetchLiveSerp,
+        fetchLiveSerp,
+        dataforseoPricing.serp.live,
         "keyword_research",
-        (input) => pricing.serpUsd(100, "live", input.keyword),
       ),
-      rankCheck: meter(
-        customer,
-        (s) => s.fetchRankCheckSerp,
-        "rank_tracking",
-        (input) => pricing.serpUsd(input.depth, "live", input.keyword),
-      ),
+      // A rank check batch shares one credit hold and one settle across its
+      // live calls (see meterDataforseoCalls). Resolves per call, in order.
+      rankCheckBatch: (inputs: Parameters<typeof fetchRankCheckSerp>[0][]) =>
+        meterDataforseoCalls(
+          customer,
+          inputs.map((input) => () => fetchRankCheckSerp(input)),
+          inputs.map((input) =>
+            creditsForProviderUsd(dataforseoPricing.serp.rankCheck(input)),
+          ),
+          "rank_tracking",
+        ),
       // Posts up to 100 queued rank check tasks; one metered charge covers the
       // whole batch (DataForSEO bills task_post at post time, collection is
       // free).
       rankCheckTaskPost: meter(
         customer,
-        (s) => s.postRankCheckTasks,
+        postRankCheckTasks,
+        dataforseoPricing.serp.rankCheckTaskPost,
         "rank_tracking",
-        (input) =>
-          input.tasks.reduce(
-            (sum, task) =>
-              sum + pricing.serpUsd(input.depth, "queued", task.keyword),
-            0,
-          ),
       ),
       local: meter(
         customer,
-        (s) => s.fetchLocalSerp,
+        fetchLocalSerp,
+        dataforseoPricing.serp.local,
         "local_seo",
-        (input) => pricing.localSerpUsd(input.searchType, input.depth),
+      ),
+      // One queued Maps task per rank grid point; one metered charge covers
+      // them all (DataForSEO bills task_post, collection is free).
+      localTaskPost: meter(
+        customer,
+        postLocalSerpTasks,
+        dataforseoPricing.serp.localTaskPost,
+        "local_seo",
       ),
     },
     labs: {
@@ -272,118 +322,190 @@ export function createDataforseoClient(customer: BillingCustomerContext) {
       // rank_tracking when omitted.
       keywordOverview: meter(
         customer,
-        (s) => s.fetchKeywordOverview,
+        fetchKeywordOverview,
+        dataforseoPricing.labs.keywordOverview,
         "rank_tracking",
-        (input) =>
-          pricing.labsUsd(input.keywords.length, input.includeClickstreamData),
       ),
       serpCompetitors: meter(
         customer,
-        (s) => s.fetchSerpCompetitors,
+        fetchSerpCompetitors,
+        dataforseoPricing.labs.serpCompetitors,
         "keyword_research",
-        (input) => pricing.labsUsd(input.limit),
       ),
     },
     lighthouse: {
       live: meter(
         customer,
-        (s) => s.fetchLighthouseResult,
+        fetchLighthouseResult,
+        dataforseoPricing.lighthouse.live,
         "site_audit",
-        () => pricing.LIGHTHOUSE_LIVE_USD,
       ),
     },
     aiSearch: {
       mentionsSearch: meter(
         customer,
-        (s) => s.fetchLlmMentionsSearch,
+        fetchLlmMentionsSearch,
+        dataforseoPricing.aiSearch.mentionsSearch,
         "ai_citations",
-        (input) => pricing.llmMentionsSearchUsd(input.limit),
       ),
       aggregatedMetrics: meter(
         customer,
-        (s) => s.fetchLlmAggregatedMetrics,
+        fetchLlmAggregatedMetrics,
+        dataforseoPricing.aiSearch.aggregatedMetrics,
         "ai_citations",
-        () => pricing.LLM_MENTIONS_ONE_ROW_USD,
       ),
       topPages: meter(
         customer,
-        (s) => s.fetchLlmTopPages,
+        fetchLlmTopPages,
+        dataforseoPricing.aiSearch.topPages,
         "ai_citations",
-        () => pricing.LLM_MENTIONS_ONE_ROW_USD,
       ),
       crossAggregatedMetrics: meter(
         customer,
-        (s) => s.fetchLlmCrossAggregatedMetrics,
+        fetchLlmCrossAggregatedMetrics,
+        dataforseoPricing.aiSearch.crossAggregatedMetrics,
         "ai_citations",
-        () => pricing.LLM_MENTIONS_ONE_ROW_USD,
       ),
       llmResponse: meter(
         customer,
-        (s) => s.fetchLlmResponse,
+        fetchLlmResponse,
+        dataforseoPricing.aiSearch.llmResponse,
         "ai_prompt_responses",
-        (input) => pricing.llmResponseUsd(input.modelSlug, input.webSearch),
       ),
+      // Posts up to 100 tracked prompts for one engine; one metered charge
+      // covers the batch (DataForSEO bills task_post, collection is free).
+      trackingTaskPost: meter(
+        customer,
+        postAiTrackingTasks,
+        dataforseoPricing.aiSearch.trackingTaskPost,
+        "ai_prompt_responses",
+      ),
+      // A manual run's live answers share one credit hold and one settle (see
+      // meterDataforseoCalls). Resolves per call, in order.
+      trackingLiveBatch: (
+        inputs: Parameters<typeof fetchAiTrackingLiveAnswer>[0][],
+      ) =>
+        meterDataforseoCalls(
+          customer,
+          inputs.map((input) => () => fetchAiTrackingLiveAnswer(input)),
+          inputs.map((input) =>
+            creditsForProviderUsd(
+              dataforseoPricing.aiSearch.trackingLive(input),
+            ),
+          ),
+          "ai_prompt_responses",
+        ),
     },
   } as const;
+}
+
+/**
+ * The one seam every DataForSEO charge passes through (hosted mode only).
+ * Order: reserve the estimate on the org's credits -> provider calls -> settle
+ * the hold on their real cost. The hold is atomic in Autumn, so concurrent
+ * calls cannot all pass on one stale balance reading.
+ *
+ * A batch of calls shares one hold and one settle per credit pool it draws
+ * on, with each call placed and refused as its own hold would be (see
+ * reserveUsageCredits): holding and settling per call sent up to 40 Autumn
+ * requests per rank check batch, and enough of them hit the SDK's timeout to
+ * drop charges.
+ */
+async function meterDataforseoCalls<T>(
+  customer: BillingCustomerContext,
+  executes: Array<() => Promise<DataforseoApiResponse<T>>>,
+  callCredits: number[],
+  creditFeature?: CreditFeature,
+): Promise<PromiseSettledResult<T>[]> {
+  if (executes.length === 0) return [];
+  const isHostedMode = await isHostedServerAuthMode();
+
+  if (!isHostedMode) {
+    return Promise.allSettled(
+      executes.map(async (execute) => (await execute()).data),
+    );
+  }
+
+  const billingCustomer = await getOrCreateOrganizationCustomer(customer);
+  const { holds, refusedCalls } = await reserveUsageCredits({
+    customer,
+    customerId: billingCustomer.id,
+    callCredits,
+    creditFeature,
+  });
+
+  const work = (async () => {
+    const billed: Array<DataforseoApiCallCost | null> = executes.map(
+      () => null,
+    );
+    const settled = await Promise.allSettled(
+      executes.map(async (execute, index) => {
+        if (refusedCalls.includes(index)) {
+          throw new AppError("INSUFFICIENT_CREDITS");
+        }
+        try {
+          const result = await execute();
+          billed[index] = result.billing;
+          return result.data;
+        } catch (error) {
+          // Transport / auth / upstream failure: nothing was billed.
+          if (!(error instanceof DataforseoChargedTaskError)) throw error;
+          // A malformed request (DataForSEO "Invalid Field: ...") that
+          // DataForSEO did not bill returns no value to the customer, so don't
+          // charge — surface it as a non-reportable VALIDATION_ERROR. If
+          // DataForSEO still billed us (costUsd > 0), charge that cost so the
+          // spend stays metered and visible instead of silently eaten.
+          if (error.isInvalidField && error.billing.costUsd <= 0) {
+            throw new AppError("VALIDATION_ERROR", error.message);
+          }
+          billed[index] = error.billing;
+          throw error;
+        }
+      }),
+    );
+
+    for (const hold of holds) {
+      const costs = hold.callIndexes
+        .map((index) => billed[index])
+        .filter((cost) => cost !== null);
+      await settleUsageCredits({
+        customer,
+        hold,
+        creditFeature:
+          creditFeature ??
+          (costs.length > 0
+            ? mapDataforseoPathToCreditFeature(costs[0].path)
+            : undefined),
+        costs,
+      });
+    }
+    return settled;
+  })();
+
+  // Register the calls + settle with the request: workerd cancels pending I/O
+  // once the client goes away, and a hold that never settles would let a
+  // disconnect-after-dispatch skip the deduction. The rejection is handled by
+  // the await below; the background handle only keeps the chain alive.
+  try {
+    waitUntil(work.catch(() => undefined));
+  } catch {
+    // No request context (Workflow step, tests): the await below runs it.
+  }
+  return await work;
 }
 
 async function meterDataforseoCall<T>(
   customer: BillingCustomerContext,
   execute: () => Promise<DataforseoApiResponse<T>>,
-  creditFeature: CreditFeature,
-  estimateUsd: () => number,
+  estimatedCredits: number,
+  creditFeature?: CreditFeature,
 ): Promise<T> {
-  const isHostedMode = await isHostedServerAuthMode();
-
-  if (!isHostedMode) {
-    const result = await execute();
-    return result.data;
-  }
-
-  const billingCustomer = await getOrCreateOrganizationCustomer(customer);
-
-  // Holding the estimate before the call is what stops concurrent calls from
-  // spending past the balance. Passing the feature lets the local billing
-  // provider refuse a tool the organization's plan does not include, before any
-  // provider spend happens.
-  const hold = await reserveUsageCredits({
-    customerId: billingCustomer.id,
+  const [result] = await meterDataforseoCalls(
+    customer,
+    [execute],
+    [estimatedCredits],
     creditFeature,
-    estimateUsd: estimateUsd(),
-  });
-  const settle = (billing: DataforseoApiCallCost | null) =>
-    settleUsageCredits({
-      customer,
-      hold,
-      creditFeature,
-      costUsd: billing?.costUsd ?? 0,
-      properties: {
-        provider: "dataforseo",
-        paths: billing ? [billing.path.join("/")] : [],
-        fromCache: false,
-      },
-    });
-
-  let result: DataforseoApiResponse<T>;
-  try {
-    result = await execute();
-  } catch (error) {
-    if (error instanceof DataforseoChargedTaskError) {
-      await settle(error.billing);
-      // A malformed request (DataForSEO "Invalid Field: ...") that DataForSEO
-      // did not bill returns no value to the customer, so don't charge — surface
-      // it as a non-reportable VALIDATION_ERROR. If DataForSEO still billed us
-      // (costUsd > 0), the settle above charged it so the spend stays metered.
-      if (error.isInvalidField && error.billing.costUsd <= 0) {
-        throw new AppError("VALIDATION_ERROR", error.message);
-      }
-    } else {
-      // No billing metadata came back: DataForSEO did not bill the call.
-      await settle(null);
-    }
-    throw error;
-  }
-
-  await settle(result.billing);
-  return result.data;
+  );
+  if (result.status === "rejected") throw result.reason;
+  return result.value;
 }

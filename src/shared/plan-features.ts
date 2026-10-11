@@ -3,9 +3,9 @@ import {
   type CreditFeature,
 } from "./billing-credit-features";
 
-// Access flags. These carry the same meaning they had under Autumn, so the
-// existing gates (`customerHasManagedAccess`, `customerHasPaidPlan`) keep
-// working unchanged whichever billing provider is active.
+// Access flags. These carry the same meaning they have under Autumn, so the
+// existing gates (`customerHasPaidPlan`, the billing account's
+// `hasManagedAccess`) work unchanged whichever billing provider is active.
 const ACCESS_FEATURE_KEYS = [
   // Floor for using the managed service at all.
   "managed_service_access",

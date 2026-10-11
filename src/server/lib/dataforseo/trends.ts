@@ -1,15 +1,11 @@
 import { sort } from "remeda";
 import { z } from "zod";
-import {
-  KeywordsDataDataforseoTrendsDemographyLiveRequestInfo,
-  KeywordsDataDataforseoTrendsSubregionInterestsLiveRequestInfo,
-  KeywordsDataGoogleTrendsExploreLiveRequestInfo,
-} from "dataforseo-client";
-import { keywordsDataApi } from "@/server/lib/dataforseo/core";
+import { dataforseoPost } from "@/server/lib/dataforseo/core";
 import {
   assertOk,
   buildTaskBilling,
   type DataforseoApiResponse,
+  type DataforseoTaskLike,
 } from "@/server/lib/dataforseo/envelope";
 import type {
   DemographySplit,
@@ -36,9 +32,12 @@ import type {
  */
 const TIME_RANGE = "past_5_years";
 
-// The SDK types every Google Trends item as a bag of `any`, so the fields we
-// read are validated here rather than trusted. Same approach as the ranked
-// SERP item schema in labs.ts.
+type TrendsTask = DataforseoTaskLike & {
+  result?: Array<{ items?: unknown[] | null }> | null;
+};
+
+// Google Trends items are loosely shaped, so the fields we read are validated
+// here rather than trusted.
 const graphItemSchema = z.object({
   type: z.literal("google_trends_graph"),
   data: z
@@ -74,19 +73,22 @@ export async function fetchGoogleTrends(input: {
   locationCode: number;
   languageCode: string;
 }): Promise<DataforseoApiResponse<GoogleTrendsData>> {
-  const response = await keywordsDataApi().googleTrendsExploreLive([
-    new KeywordsDataGoogleTrendsExploreLiveRequestInfo({
-      keywords: [input.keyword],
-      // Google Trends is the one endpoint that wants location_code as a
-      // string; a number comes back as a charged "Invalid Field".
-      location_code: String(input.locationCode),
-      language_code: input.languageCode,
-      time_range: TIME_RANGE,
-      // Both in one task rather than two. The queries list is only returned
-      // for a single keyword, which is all we ever ask for.
-      item_types: ["google_trends_graph", "google_trends_queries_list"],
-    }),
-  ]);
+  const response = await dataforseoPost<TrendsTask>(
+    "/v3/keywords_data/google_trends/explore/live",
+    [
+      {
+        keywords: [input.keyword],
+        // Google Trends is the one endpoint that wants location_code as a
+        // string; a number comes back as a charged "Invalid Field".
+        location_code: String(input.locationCode),
+        language_code: input.languageCode,
+        time_range: TIME_RANGE,
+        // Both in one task rather than two. The queries list is only returned
+        // for a single keyword, which is all we ever ask for.
+        item_types: ["google_trends_graph", "google_trends_queries_list"],
+      },
+    ],
+  );
   const task = assertOk(response);
 
   return {
@@ -134,8 +136,8 @@ function parseInterest(
   });
 }
 
-/** The element shape inside `top` / `rising` is untyped by the SDK, so an
- * entry that doesn't match is dropped rather than guessed at. */
+/** The element shape inside `top` / `rising` is loose, so an entry that
+ * doesn't match is dropped rather than guessed at. */
 function parseRelatedQueries(entries: unknown[]): TrendsRelatedQuery[] {
   return entries.flatMap((entry) => {
     const parsed = relatedQuerySchema.safeParse(entry);
@@ -204,14 +206,16 @@ export async function fetchSubregionInterests(input: {
   keyword: string;
   locationCode: number;
 }): Promise<DataforseoApiResponse<RegionInterest[]>> {
-  const response =
-    await keywordsDataApi().dataforseoTrendsSubregionInterestsLive([
-      new KeywordsDataDataforseoTrendsSubregionInterestsLiveRequestInfo({
+  const response = await dataforseoPost<TrendsTask>(
+    "/v3/keywords_data/dataforseo_trends/subregion_interests/live",
+    [
+      {
         keywords: [input.keyword],
         location_code: input.locationCode,
         time_range: AUDIENCE_TIME_RANGE,
-      }),
-    ]);
+      },
+    ],
+  );
   const task = assertOk(response);
 
   const item = subregionItemSchema.safeParse(task.result?.[0]?.items?.[0]);
@@ -235,13 +239,16 @@ export async function fetchDemography(input: {
   keyword: string;
   locationCode: number;
 }): Promise<DataforseoApiResponse<KeywordDemography>> {
-  const response = await keywordsDataApi().dataforseoTrendsDemographyLive([
-    new KeywordsDataDataforseoTrendsDemographyLiveRequestInfo({
-      keywords: [input.keyword],
-      location_code: input.locationCode,
-      time_range: AUDIENCE_TIME_RANGE,
-    }),
-  ]);
+  const response = await dataforseoPost<TrendsTask>(
+    "/v3/keywords_data/dataforseo_trends/demography/live",
+    [
+      {
+        keywords: [input.keyword],
+        location_code: input.locationCode,
+        time_range: AUDIENCE_TIME_RANGE,
+      },
+    ],
+  );
   const task = assertOk(response);
 
   const item = demographyItemSchema.safeParse(task.result?.[0]?.items?.[0]);

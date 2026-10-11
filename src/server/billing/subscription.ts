@@ -1,13 +1,10 @@
-import type { CreditFeature } from "@/shared/billing-credit-features";
-import type { PlanFeatureKey } from "@/shared/plan-features";
 import { isLocalBillingProvider } from "@/server/billing/provider";
-import type {
+import type { BillingProviderApi } from "@/server/billing/types";
+
+export type {
   BillingCustomerContext,
-  BillingProviderApi,
   UsageCreditHold,
 } from "@/server/billing/types";
-
-export type { BillingCustomerContext };
 
 let localProvider: Promise<BillingProviderApi> | undefined;
 let autumnProvider: Promise<BillingProviderApi> | undefined;
@@ -15,11 +12,11 @@ let autumnProvider: Promise<BillingProviderApi> | undefined;
 /**
  * The billing seam every caller goes through. Which implementation answers is
  * decided per call by BILLING_PROVIDER (see ./provider.ts): Autumn, the hosted
- * default, or this deployment's own plans tables.
+ * default (./autumn-subscription.ts, upstream's billing code), or this
+ * deployment's own plans tables (./local).
  *
  * Both imports are dynamic so a deployment only ever loads the provider it
- * uses — Autumn keeps its ~450 kB SDK out of a local-billing isolate, and the
- * local provider keeps the database client out of an Autumn one.
+ * uses — the local provider keeps the database client out of an Autumn one.
  */
 function provider(): Promise<BillingProviderApi> {
   return isLocalBillingProvider().then((local) =>
@@ -29,54 +26,60 @@ function provider(): Promise<BillingProviderApi> {
   );
 }
 
+type Api = BillingProviderApi;
+
 export async function getOrCreateOrganizationCustomer(
-  context: BillingCustomerContext,
-): Promise<{ id: string }> {
-  return (await provider()).getOrCreateOrganizationCustomer(context);
+  ...args: Parameters<Api["getOrCreateOrganizationCustomer"]>
+) {
+  return (await provider()).getOrCreateOrganizationCustomer(...args);
 }
 
 export async function customerHasPaidPlan(
-  customerId: string,
-  opts: { retryDenied?: boolean } = {},
+  ...args: Parameters<Api["customerHasPaidPlan"]>
 ) {
-  return (await provider()).customerHasPaidPlan(customerId, opts);
-}
-
-export async function customerHasManagedAccess(customerId: string) {
-  return (await provider()).customerHasManagedAccess(customerId);
+  return (await provider()).customerHasPaidPlan(...args);
 }
 
 export async function listGrantedFeatureKeys(
-  customerId: string,
-): Promise<readonly PlanFeatureKey[]> {
-  return (await provider()).listGrantedFeatureKeys(customerId);
+  ...args: Parameters<Api["listGrantedFeatureKeys"]>
+) {
+  return (await provider()).listGrantedFeatureKeys(...args);
 }
 
-export async function reserveUsageCredits(
-  args: Parameters<BillingProviderApi["reserveUsageCredits"]>[0],
-): Promise<UsageCreditHold> {
-  return (await provider()).reserveUsageCredits(args);
-}
-
-export async function settleUsageCredits(
-  args: Parameters<BillingProviderApi["settleUsageCredits"]>[0],
-): Promise<void> {
-  return (await provider()).settleUsageCredits(args);
+export async function getUsageCreditsRemaining(
+  ...args: Parameters<Api["getUsageCreditsRemaining"]>
+) {
+  return (await provider()).getUsageCreditsRemaining(...args);
 }
 
 export async function checkUsageCreditsDepleted(
-  customer: BillingCustomerContext,
-): Promise<{ depleted: boolean; monthlyRemaining: number }> {
-  return (await provider()).checkUsageCreditsDepleted(customer);
+  ...args: Parameters<Api["checkUsageCreditsDepleted"]>
+) {
+  return (await provider()).checkUsageCreditsDepleted(...args);
 }
 
-export async function trackUsageCreditSpend(args: {
-  customer: BillingCustomerContext;
-  customerId: string;
-  creditFeature: CreditFeature;
-  costUsd: number;
-  monthlyRemaining: number;
-  properties?: Record<string, unknown>;
-}): Promise<void> {
-  return (await provider()).trackUsageCreditSpend(args);
+export async function holdCredits(...args: Parameters<Api["holdCredits"]>) {
+  return (await provider()).holdCredits(...args);
+}
+
+export async function reserveUsageCredits(
+  ...args: Parameters<Api["reserveUsageCredits"]>
+) {
+  return (await provider()).reserveUsageCredits(...args);
+}
+
+export async function finalizeHold(...args: Parameters<Api["finalizeHold"]>) {
+  return (await provider()).finalizeHold(...args);
+}
+
+export async function settleUsageCredits(
+  ...args: Parameters<Api["settleUsageCredits"]>
+) {
+  return (await provider()).settleUsageCredits(...args);
+}
+
+export async function trackUsageCreditSpend(
+  ...args: Parameters<Api["trackUsageCreditSpend"]>
+) {
+  return (await provider()).trackUsageCreditSpend(...args);
 }

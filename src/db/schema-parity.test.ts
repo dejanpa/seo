@@ -7,6 +7,8 @@ import { sort } from "remeda";
 import { describe, expect, it } from "vitest";
 import * as sqliteApp from "./app.schema";
 import * as sqliteProjectContext from "./project-context.schema";
+import * as sqliteReports from "./reports.schema";
+import * as sqliteReportTemplates from "./report-templates.schema";
 import * as sqliteAudit from "./audit.schema";
 import * as sqliteSam from "./sam.schema";
 import * as sqliteAuth from "./better-auth-schema";
@@ -15,8 +17,11 @@ import * as sqlitePlans from "./plans.schema";
 import * as sqliteGa4 from "./ga4.schema";
 import * as sqliteGsc from "./gsc.schema";
 import * as sqliteTelemetry from "./telemetry.schema";
+import * as sqliteAiVisibility from "./ai-visibility.schema";
 import * as pgApp from "./pg/app.schema";
 import * as pgProjectContext from "./pg/project-context.schema";
+import * as pgReports from "./pg/reports.schema";
+import * as pgReportTemplates from "./pg/report-templates.schema";
 import * as pgAudit from "./pg/audit.schema";
 import * as pgSam from "./pg/sam.schema";
 import * as pgAuth from "./pg/better-auth-schema";
@@ -25,6 +30,7 @@ import * as pgPlans from "./pg/plans.schema";
 import * as pgGa4 from "./pg/ga4.schema";
 import * as pgGsc from "./pg/gsc.schema";
 import * as pgTelemetry from "./pg/telemetry.schema";
+import * as pgAiVisibility from "./pg/ai-visibility.schema";
 
 // Guards the ONE structural artifact `db:generate` does not regenerate: the
 // hand-written Postgres schema. The provider-aware `db`/`@/db/schema` barrel
@@ -149,6 +155,8 @@ function checkNames(table: Table, dialect: Dialect): string[] {
 const sqliteAppTables = tablesFrom(
   sqliteApp,
   sqliteProjectContext,
+  sqliteReports,
+  sqliteReportTemplates,
   sqliteAudit,
   sqliteSam,
   sqliteBilling,
@@ -156,10 +164,13 @@ const sqliteAppTables = tablesFrom(
   sqliteGa4,
   sqliteGsc,
   sqliteTelemetry,
+  sqliteAiVisibility,
 );
 const pgAppTables = tablesFrom(
   pgApp,
   pgProjectContext,
+  pgReports,
+  pgReportTemplates,
   pgAudit,
   pgSam,
   pgBilling,
@@ -167,6 +178,7 @@ const pgAppTables = tablesFrom(
   pgGa4,
   pgGsc,
   pgTelemetry,
+  pgAiVisibility,
 );
 const sqliteAuthTables = tablesFrom(sqliteAuth);
 const pgAuthTables = tablesFrom(pgAuth);
@@ -268,6 +280,8 @@ const REQUIRED_BETTER_AUTH_INDEXES: {
   { table: "organization", columns: ["slug"], unique: true },
   { table: "member", columns: ["organization_id"], unique: false },
   { table: "member", columns: ["user_id"], unique: false },
+  // Backstop for duplicate memberships (also guarded by beforeAcceptInvitation).
+  { table: "member", columns: ["organization_id", "user_id"], unique: true },
   { table: "invitation", columns: ["organization_id"], unique: false },
   { table: "invitation", columns: ["email"], unique: false },
 ];

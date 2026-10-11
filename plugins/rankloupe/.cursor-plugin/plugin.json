@@ -1,7 +1,7 @@
 {
   "name": "rankloupe",
-  "version": "1.0.0",
-  "description": "SEO made simple. Research keywords and competitors, audit sites, track rankings, and use Search Console data from your agent.",
+  "version": "1.0.21",
+  "description": "Research keywords and competitors, audit sites, track rankings and AI visibility, and use connected Search Console data from your AI assistant.",
   "author": {
     "name": "Cortex Labs",
     "email": "support@cortexlabs.cloud"
@@ -19,7 +19,7 @@
     "rank-tracking",
     "local-seo"
   ],
-  "logo": "https://seo.auto-ai.cloud/transparent-logo.png",
+  "logo": "https://raw.githubusercontent.com/dejanpa/seo/main/public/transparent-logo.png",
   "skills": "skills",
-  "mcpServers": "mcp.json"
+  "mcpServers": ".mcp.json"
 }

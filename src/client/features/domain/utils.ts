@@ -71,10 +71,13 @@ export function formatRounded(value: number | null | undefined) {
   return new Intl.NumberFormat().format(Math.round(value));
 }
 
-/** Rounded dollars, matching the `$1.23` CPC convention in the tables. */
-export function formatUsd(value: number | null | undefined) {
-  if (value == null) return "-";
-  return `$${new Intl.NumberFormat().format(Math.round(value))}`;
+export function formatMetric(
+  value: number | null | undefined,
+  hasData: boolean | undefined,
+) {
+  // The page's "Not enough data" banner explains the empty values.
+  if (!hasData) return "-";
+  return formatRounded(value);
 }
 
 type ExportTable = { headers: string[]; rows: (string | number | null)[][] };
@@ -98,5 +101,17 @@ export function pagesToTable(rows: PageRow[]): ExportTable {
   return {
     headers: ["Page", "Organic Traffic", "Keywords"],
     rows: rows.map((row) => [row.page, row.organicTraffic, row.keywords]),
+  };
+}
+
+/** Adapts the URL-driven domain sort to the shared `SortableHeader`. */
+export function domainSortColumn(
+  isActive: boolean,
+  order: SortOrder,
+  onClick: () => void,
+) {
+  return {
+    getIsSorted: () => (isActive ? order : false),
+    getToggleSortingHandler: () => onClick,
   };
 }

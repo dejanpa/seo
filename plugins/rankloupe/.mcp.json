@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "rankloupe": {
+      "type": "http",
+      "url": "https://seo.auto-ai.cloud/mcp"
+    }
+  }
+}

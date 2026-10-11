@@ -1,5 +1,3 @@
-import { getOptionalEnvValue } from "@/server/lib/runtime-env";
-
 const BILLING_PROVIDERS = ["autumn", "local"] as const;
 
 const warnedInvalidProviders = new Set<string>();
@@ -12,8 +10,26 @@ const warnedInvalidProviders = new Set<string>();
  * - "local": the `plans` / `organization_subscriptions` / `credit_ledger_entries`
  *   tables in this deployment's own database, administered from /admin.
  */
+/**
+ * BILLING_PROVIDER, looked up the way getOptionalEnvValue does (process.env
+ * first, then the Workers env) but without importing runtime-env, so the many
+ * upstream tests that mock runtime-env, or don't mock cloudflare:workers,
+ * keep running on the default Autumn provider.
+ */
+async function readBillingProviderSetting(): Promise<string | undefined> {
+  const fromProcess =
+    typeof process !== "undefined" ? process.env?.BILLING_PROVIDER : undefined;
+  if (fromProcess) return fromProcess;
+  try {
+    const workers = await import("cloudflare:workers");
+    return workers.env?.BILLING_PROVIDER;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function isLocalBillingProvider() {
-  const value = await getOptionalEnvValue("BILLING_PROVIDER");
+  const value = await readBillingProviderSetting();
   if (!value) return false;
   if (value === "local") return true;
   if (value === "autumn") return false;

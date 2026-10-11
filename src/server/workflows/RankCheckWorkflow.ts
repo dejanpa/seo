@@ -17,11 +17,7 @@ import { pgStep } from "@/server/workflows/pgStep";
 import { createDataforseoClient } from "@/server/lib/dataforseo";
 import { captureServerEvent } from "@/server/lib/posthog";
 import { AppError } from "@/server/lib/errors";
-import { autumn } from "@/server/billing/autumn";
-import {
-  AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
-  AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
-} from "@/shared/billing";
+import { getUsageCreditsRemaining } from "@/server/billing/subscription";
 import {
   estimateRankCheckCredits,
   rankCheckCostApprovalError,
@@ -49,7 +45,7 @@ interface RankCheckParams {
   maxCostCredits?: number;
 }
 
-export async function prepareRankCheckKeywords(input: {
+async function prepareRankCheckKeywords(input: {
   runId: string;
   configId: string;
   billingCustomer: BillingCustomerContext;
@@ -86,7 +82,7 @@ export async function prepareRankCheckKeywords(input: {
   }
 
   const { costCredits } = estimateRankCheckCredits(
-    trackingKeywords.length,
+    trackingKeywords.map((kw) => kw.keyword),
     input.devices,
     input.serpDepth,
     input.trigger === "scheduled" ? "queued" : "live",
@@ -102,19 +98,12 @@ export async function prepareRankCheckKeywords(input: {
   // Scheduled checks go through the cheaper task queue, so estimate at queued
   // pricing — a live-price estimate would skip checks the user can afford.
   if (await isHostedServerAuthMode()) {
-    const [monthlyCheck, topupCheck] = await Promise.all([
-      autumn.check({
-        customerId: input.billingCustomer.organizationId,
-        featureId: AUTUMN_SEO_DATA_BALANCE_FEATURE_ID,
-      }),
-      autumn.check({
-        customerId: input.billingCustomer.organizationId,
-        featureId: AUTUMN_SEO_DATA_TOPUP_BALANCE_FEATURE_ID,
-      }),
-    ]);
-    const available =
-      (monthlyCheck.balance?.remaining ?? 0) +
-      (topupCheck.balance?.remaining ?? 0);
+    // Through the billing dispatcher, not Autumn directly, so a deployment on
+    // the local billing provider reads its own balances.
+    const { monthlyRemaining, topupRemaining } = await getUsageCreditsRemaining(
+      input.billingCustomer.organizationId,
+    );
+    const available = monthlyRemaining + topupRemaining;
     if (available < costCredits) {
       throw new AppError(
         "INSUFFICIENT_CREDITS",
@@ -168,29 +157,37 @@ async function finalizeRankCheckRun(input: {
   const keywordsTotal = run.keywordsTotal || keywordsChecked;
   const incompleteCount = keywordsTotal - keywordsChecked;
 
-  let errorMessage: string | undefined;
-  if (input.batchError) {
-    errorMessage = `Completed ${keywordsChecked} of ${keywordsTotal} keyword(s). Error: ${input.batchError}`;
-  } else if (incompleteCount > 0) {
-    errorMessage = `${incompleteCount} keyword(s) could not be checked`;
-  }
+  // Batch steps record the first per-keyword rejection on the run as it
+  // happens, so a failed run shows the vendor's reason rather than a count.
+  const keywordError = run.errorMessage ?? input.batchError;
+  const status =
+    keywordsChecked === 0 && keywordsTotal > 0 ? "failed" : "completed";
+  const errorMessage =
+    status === "failed"
+      ? (keywordError ?? "No keywords could be checked.")
+      : incompleteCount > 0
+        ? `Checked ${keywordsChecked} of ${keywordsTotal} keyword(s)${keywordError ? `: ${keywordError}` : ""}`
+        : null;
 
   // Flipping status away from 'pending'/'running' is what releases the
   // partial-index slot for the next run.
   await RankTrackingRepository.updateRun(input.runId, {
-    status: "completed",
+    status,
     keywordsChecked,
     completedAt: nowIso,
-    ...(errorMessage ? { errorMessage } : {}),
+    errorMessage,
   });
 
-  // Clear any previous skip reason on success.
+  // Clear any previous skip reason on success. A failed run must not advance
+  // lastCheckedAt — nothing was actually checked.
   // Note: nextCheckAt is NOT set here — the cron handler advances it eagerly
   // before starting the workflow to prevent retry storms.
-  await RankTrackingRepository.updateConfig(input.configId, input.projectId, {
-    lastCheckedAt: nowIso,
-    lastSkipReason: null,
-  });
+  if (status === "completed") {
+    await RankTrackingRepository.updateConfig(input.configId, input.projectId, {
+      lastCheckedAt: nowIso,
+      lastSkipReason: null,
+    });
+  }
 
   // One-line summary per run so fallback rates are visible in Workers Logs.
   // Keys match the PostHog event properties for log/event correlation.
@@ -202,7 +199,7 @@ async function finalizeRankCheckRun(input: {
     ? ` error="${errorMessage.replace(/\s+/g, " ").slice(0, 200)}"`
     : "";
   console.log(
-    `[rank-check] ${input.runId} completed org=${input.billingCustomer.organizationId} project=${input.projectId} trigger=${input.trigger} keywords=${keywordsChecked}/${keywordsTotal}${queueSummary}${errorSummary}`,
+    `[rank-check] ${input.runId} ${status} org=${input.billingCustomer.organizationId} project=${input.projectId} trigger=${input.trigger} keywords=${keywordsChecked}/${keywordsTotal}${queueSummary}${errorSummary}`,
   );
 
   await captureServerEvent({
@@ -211,7 +208,7 @@ async function finalizeRankCheckRun(input: {
     organizationId: input.billingCustomer.organizationId,
     properties: {
       project_id: input.projectId,
-      status: "completed",
+      status,
       trigger: input.trigger,
       keywords_checked: keywordsChecked,
       ...(input.queueStats

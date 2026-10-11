@@ -1,43 +1,84 @@
-import { sortBy } from "remeda";
 import { z } from "zod";
-import {
-  DataforseoLabsGoogleBulkKeywordDifficultyLiveRequestInfo,
-  DataforseoLabsGoogleDomainRankOverviewLiveRequestInfo,
-  DataforseoLabsGoogleHistoricalKeywordDataLiveRequestInfo,
-  DataforseoLabsGoogleKeywordIdeasLiveRequestInfo,
-  DataforseoLabsGoogleKeywordOverviewLiveRequestInfo,
-  DataforseoLabsGoogleKeywordSuggestionsLiveRequestInfo,
-  DataforseoLabsGoogleRankedKeywordsLiveRequestInfo,
-  DataforseoLabsGoogleRelatedKeywordsLiveRequestInfo,
-  DataforseoLabsGoogleRelevantPagesLiveRequestInfo,
-  DataforseoLabsGoogleSearchIntentLiveRequestInfo,
-  DataforseoLabsGoogleSerpCompetitorsLiveRequestInfo,
-  type DataforseoLabsBulkKeywordDifficultyLiveItem,
-  type DataforseoLabsDomainRankOverviewLiveItem,
-  type DataforseoLabsGoogleSearchIntentLiveItem,
-  type DataforseoLabsGoogleKeywordOverviewLiveItem,
-  type DataforseoLabsRelatedKeywordsLiveItem,
-  type DataforseoLabsRelevantPagesLiveItem,
-  type DataforseoLabsSerpCompetitorsLiveItem,
-  type KeywordDataInfo,
-} from "dataforseo-client";
-import { labsApi } from "@/server/lib/dataforseo/core";
-import type { KeywordHistoryPoint } from "@/types/keywords";
+import { dataforseoPost } from "@/server/lib/dataforseo/core";
 import {
   assertOk,
   buildTaskBilling,
   parseTaskItems,
   type DataforseoApiResponse,
+  type DataforseoItemsTask,
 } from "@/server/lib/dataforseo/envelope";
 
-// SDK item models are 1:1 supersets of what we need, so we expose them directly
-// under the names the rest of the app already uses (no hand-written Zod).
-export type LabsKeywordDataItem = KeywordDataInfo;
-type RelatedKeywordItem = DataforseoLabsRelatedKeywordsLiveItem;
-type DomainMetricsItem = DataforseoLabsDomainRankOverviewLiveItem;
-export type RelevantPagesItem = DataforseoLabsRelevantPagesLiveItem;
-export type KeywordOverviewItem = DataforseoLabsGoogleKeywordOverviewLiveItem;
-type SerpCompetitorItem = DataforseoLabsSerpCompetitorsLiveItem;
+// Labs payload types: the fields the app reads, typed honestly (the wire nulls
+// any of them); the index signature carries everything else through untyped,
+// like the SDK's item models did. These are claims about the payload, not
+// validation — fields that must hold get a Zod schema (see below).
+
+export interface LabsMonthlySearch {
+  year?: number | null;
+  month?: number | null;
+  search_volume?: number | null;
+  [key: string]: unknown;
+}
+
+export interface LabsKeywordInfo {
+  search_volume?: number | null;
+  cpc?: number | null;
+  /** 0-1 paid-competition ratio (Google Ads reports a 0-100 index instead). */
+  competition?: number | null;
+  competition_level?: string | null;
+  monthly_searches?: LabsMonthlySearch[] | null;
+  [key: string]: unknown;
+}
+
+export interface LabsKeywordDataItem {
+  keyword?: string | null;
+  keyword_info?: LabsKeywordInfo | null;
+  keyword_info_normalized_with_clickstream?: LabsKeywordInfo | null;
+  keyword_properties?: {
+    keyword_difficulty?: number | null;
+    [key: string]: unknown;
+  } | null;
+  search_intent_info?: {
+    main_intent?: string | null;
+    [key: string]: unknown;
+  } | null;
+  [key: string]: unknown;
+}
+
+/** keyword_overview items share the keyword-data field surface. */
+export type KeywordOverviewItem = LabsKeywordDataItem;
+
+/** related_keywords wraps the keyword payload one level deeper. */
+type RelatedKeywordItem = {
+  keyword_data?: LabsKeywordDataItem | null;
+  [key: string]: unknown;
+};
+
+type LabsMetricsBlock = {
+  organic?: { etv?: number | null; count?: number | null } | null;
+  [key: string]: unknown;
+};
+
+type DomainMetricsItem = {
+  metrics?: LabsMetricsBlock | null;
+  [key: string]: unknown;
+};
+
+export interface RelevantPagesItem {
+  page_address?: string | null;
+  metrics?: LabsMetricsBlock | null;
+  [key: string]: unknown;
+}
+
+type SerpCompetitorItem = {
+  domain?: string | null;
+  avg_position?: number | null;
+  median_position?: number | null;
+  visibility?: number | null;
+  etv?: number | null;
+  keywords_count?: number | null;
+  [key: string]: unknown;
+};
 
 // Ranked keywords is the one Labs endpoint the SDK types loosely: its
 // `ranked_serp_element.serp_item` is the base element item, so the url / etv /
@@ -110,19 +151,23 @@ export async function fetchRelatedKeywords(input: {
   limit: number;
   depth?: number;
   includeClickstreamData?: boolean;
+  ignoreSynonyms?: boolean;
 }): Promise<DataforseoApiResponse<RelatedKeywordItem[]>> {
-  const response = await labsApi().googleRelatedKeywordsLive([
-    new DataforseoLabsGoogleRelatedKeywordsLiveRequestInfo({
+  const response = await dataforseoPost<
+    DataforseoItemsTask<RelatedKeywordItem>
+  >("/v3/dataforseo_labs/google/related_keywords/live", [
+    {
       keyword: input.keyword,
       location_code: input.locationCode,
       language_code: input.languageCode,
       limit: input.limit,
       depth: input.depth ?? 3,
+      ignore_synonyms: input.ignoreSynonyms ?? false,
       // Clickstream-refined volumes DOUBLE the request cost, so they are
-      // opt-in — see specs/0004-keyword-data-source-routing.md.
+      // opt-in — see docs/maintainers/specs/0004-keyword-data-source-routing.md.
       include_clickstream_data: input.includeClickstreamData ?? false,
       include_serp_info: false,
-    }),
+    },
   ]);
   const task = assertOk(response);
   return {
@@ -137,9 +182,12 @@ export async function fetchKeywordSuggestions(input: {
   languageCode: string;
   limit: number;
   includeClickstreamData?: boolean;
+  ignoreSynonyms?: boolean;
 }): Promise<DataforseoApiResponse<LabsKeywordDataItem[]>> {
-  const response = await labsApi().googleKeywordSuggestionsLive([
-    new DataforseoLabsGoogleKeywordSuggestionsLiveRequestInfo({
+  const response = await dataforseoPost<
+    DataforseoItemsTask<LabsKeywordDataItem>
+  >("/v3/dataforseo_labs/google/keyword_suggestions/live", [
+    {
       keyword: input.keyword,
       location_code: input.locationCode,
       language_code: input.languageCode,
@@ -147,9 +195,9 @@ export async function fetchKeywordSuggestions(input: {
       include_clickstream_data: input.includeClickstreamData ?? false,
       include_serp_info: false,
       include_seed_keyword: true,
-      ignore_synonyms: false,
+      ignore_synonyms: input.ignoreSynonyms ?? false,
       exact_match: false,
-    }),
+    },
   ]);
   const task = assertOk(response);
   return {
@@ -164,18 +212,21 @@ export async function fetchKeywordIdeas(input: {
   languageCode: string;
   limit: number;
   includeClickstreamData?: boolean;
+  ignoreSynonyms?: boolean;
 }): Promise<DataforseoApiResponse<LabsKeywordDataItem[]>> {
-  const response = await labsApi().googleKeywordIdeasLive([
-    new DataforseoLabsGoogleKeywordIdeasLiveRequestInfo({
+  const response = await dataforseoPost<
+    DataforseoItemsTask<LabsKeywordDataItem>
+  >("/v3/dataforseo_labs/google/keyword_ideas/live", [
+    {
       keywords: [input.keyword],
       location_code: input.locationCode,
       language_code: input.languageCode,
       limit: input.limit,
       include_clickstream_data: input.includeClickstreamData ?? false,
       include_serp_info: false,
-      ignore_synonyms: false,
+      ignore_synonyms: input.ignoreSynonyms ?? false,
       closely_variants: false,
-    }),
+    },
   ]);
   const task = assertOk(response);
   return {
@@ -189,14 +240,17 @@ export async function fetchDomainRankOverview(input: {
   locationCode: number;
   languageCode: string;
 }): Promise<DataforseoApiResponse<DomainMetricsItem[]>> {
-  const response = await labsApi().googleDomainRankOverviewLive([
-    new DataforseoLabsGoogleDomainRankOverviewLiveRequestInfo({
-      target: input.target,
-      location_code: input.locationCode,
-      language_code: input.languageCode,
-      limit: 1,
-    }),
-  ]);
+  const response = await dataforseoPost<DataforseoItemsTask<DomainMetricsItem>>(
+    "/v3/dataforseo_labs/google/domain_rank_overview/live",
+    [
+      {
+        target: input.target,
+        location_code: input.locationCode,
+        language_code: input.languageCode,
+        limit: 1,
+      },
+    ],
+  );
   const task = assertOk(response);
   return {
     data: task.result?.[0]?.items ?? [],
@@ -222,18 +276,21 @@ export async function fetchRankedKeywords(input: {
   // Note: ranked_keywords has no include_subdomains parameter — a domain
   // target always covers the hostname plus its subdomains. Narrower scopes
   // are expressed through `filters` (see researchScopeFilters.ts).
-  const response = await labsApi().googleRankedKeywordsLive([
-    new DataforseoLabsGoogleRankedKeywordsLiveRequestInfo({
-      target: input.target,
-      location_code: input.locationCode,
-      language_code: input.languageCode,
-      limit: input.limit,
-      offset: input.offset,
-      order_by: input.orderBy,
-      filters: input.filters,
-      item_types: input.itemTypes,
-    }),
-  ]);
+  const response = await dataforseoPost<DataforseoItemsTask<unknown>>(
+    "/v3/dataforseo_labs/google/ranked_keywords/live",
+    [
+      {
+        target: input.target,
+        location_code: input.locationCode,
+        language_code: input.languageCode,
+        limit: input.limit,
+        offset: input.offset,
+        order_by: input.orderBy,
+        filters: input.filters,
+        item_types: input.itemTypes,
+      },
+    ],
+  );
   const task = assertOk(response);
   return {
     data: {
@@ -262,17 +319,20 @@ export async function fetchRelevantPages(input: {
   orderBy?: string[];
   filters?: unknown[];
 }): Promise<DataforseoApiResponse<RelevantPagesPage>> {
-  const response = await labsApi().googleRelevantPagesLive([
-    new DataforseoLabsGoogleRelevantPagesLiveRequestInfo({
-      target: input.target,
-      location_code: input.locationCode,
-      language_code: input.languageCode,
-      limit: input.limit,
-      offset: input.offset,
-      order_by: input.orderBy,
-      filters: input.filters,
-    }),
-  ]);
+  const response = await dataforseoPost<DataforseoItemsTask<RelevantPagesItem>>(
+    "/v3/dataforseo_labs/google/relevant_pages/live",
+    [
+      {
+        target: input.target,
+        location_code: input.locationCode,
+        language_code: input.languageCode,
+        limit: input.limit,
+        offset: input.offset,
+        order_by: input.orderBy,
+        filters: input.filters,
+      },
+    ],
+  );
   const task = assertOk(response);
   return {
     data: {
@@ -289,107 +349,19 @@ export async function fetchKeywordOverview(input: {
   languageCode: string;
   includeClickstreamData?: boolean;
 }): Promise<DataforseoApiResponse<KeywordOverviewItem[]>> {
-  const response = await labsApi().googleKeywordOverviewLive([
-    new DataforseoLabsGoogleKeywordOverviewLiveRequestInfo({
+  const response = await dataforseoPost<
+    DataforseoItemsTask<KeywordOverviewItem>
+  >("/v3/dataforseo_labs/google/keyword_overview/live", [
+    {
       keywords: input.keywords,
       location_code: input.locationCode,
       language_code: input.languageCode,
       include_clickstream_data: input.includeClickstreamData ?? false,
-    }),
+    },
   ]);
   const task = assertOk(response);
   return {
     data: task.result?.[0]?.items ?? [],
-    billing: buildTaskBilling(task),
-  };
-}
-
-type SearchIntentItem = DataforseoLabsGoogleSearchIntentLiveItem;
-type BulkKeywordDifficultyItem = DataforseoLabsBulkKeywordDifficultyLiveItem;
-
-/**
- * Search intent for keywords the expansion endpoints left unlabelled.
- *
- * Language-only: this endpoint takes no location, which is why it can label
- * keywords for the Google-Ads-served countries Labs does not cover at all.
- * Callers must check the language against SEARCH_INTENT_LANGUAGES first — an
- * unsupported one comes back as a *charged* "Invalid Field: 'language_code'".
- */
-export async function fetchSearchIntent(input: {
-  keywords: string[];
-  languageCode: string;
-}): Promise<DataforseoApiResponse<SearchIntentItem[]>> {
-  const response = await labsApi().googleSearchIntentLive([
-    new DataforseoLabsGoogleSearchIntentLiveRequestInfo({
-      keywords: input.keywords,
-      language_code: input.languageCode,
-    }),
-  ]);
-  const task = assertOk(response);
-  return {
-    data: task.result?.[0]?.items ?? [],
-    billing: buildTaskBilling(task),
-  };
-}
-
-/** Difficulty for keywords the expansion endpoints returned without one. */
-export async function fetchBulkKeywordDifficulty(input: {
-  keywords: string[];
-  locationCode: number;
-  languageCode: string;
-}): Promise<DataforseoApiResponse<BulkKeywordDifficultyItem[]>> {
-  const response = await labsApi().googleBulkKeywordDifficultyLive([
-    new DataforseoLabsGoogleBulkKeywordDifficultyLiveRequestInfo({
-      keywords: input.keywords,
-      location_code: input.locationCode,
-      language_code: input.languageCode,
-    }),
-  ]);
-  const task = assertOk(response);
-  return {
-    data: task.result?.[0]?.items ?? [],
-    billing: buildTaskBilling(task),
-  };
-}
-
-/**
- * How volume, CPC and competition looked in previous months.
- *
- * The research rows already carry monthly volume, so the reason to buy this is
- * the other two series: CPC and competition say whether the commercial
- * pressure on a term is building, which volume alone cannot.
- */
-export async function fetchHistoricalKeywordData(input: {
-  keyword: string;
-  locationCode: number;
-  languageCode: string;
-}): Promise<DataforseoApiResponse<KeywordHistoryPoint[]>> {
-  const response = await labsApi().googleHistoricalKeywordDataLive([
-    new DataforseoLabsGoogleHistoricalKeywordDataLiveRequestInfo({
-      keywords: [input.keyword],
-      location_code: input.locationCode,
-      language_code: input.languageCode,
-    }),
-  ]);
-  const task = assertOk(response);
-
-  const history = task.result?.[0]?.items?.[0]?.history ?? [];
-  return {
-    data: sortBy(
-      history.flatMap((entry) => {
-        if (entry.year == null || entry.month == null) return [];
-        return [
-          {
-            year: entry.year,
-            month: entry.month,
-            searchVolume: entry.keyword_info?.search_volume ?? null,
-            cpc: entry.keyword_info?.cpc ?? null,
-            competition: entry.keyword_info?.competition ?? null,
-          },
-        ];
-      }),
-      (item) => item.year * 100 + item.month,
-    ),
     billing: buildTaskBilling(task),
   };
 }
@@ -403,8 +375,10 @@ export async function fetchSerpCompetitors(input: {
   limit: number;
   offset?: number;
 }): Promise<DataforseoApiResponse<SerpCompetitorItem[]>> {
-  const response = await labsApi().googleSerpCompetitorsLive([
-    new DataforseoLabsGoogleSerpCompetitorsLiveRequestInfo({
+  const response = await dataforseoPost<
+    DataforseoItemsTask<SerpCompetitorItem>
+  >("/v3/dataforseo_labs/google/serp_competitors/live", [
+    {
       keywords: input.keywords,
       location_code: input.locationCode,
       language_code: input.languageCode,
@@ -412,7 +386,7 @@ export async function fetchSerpCompetitors(input: {
       include_subdomains: input.includeSubdomains,
       limit: input.limit,
       offset: input.offset,
-    }),
+    },
   ]);
   const task = assertOk(response);
   return {

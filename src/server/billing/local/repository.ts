@@ -200,11 +200,20 @@ async function rollExpiredPeriod(args: {
   return updated[0] ?? (await getSubscription(args.organizationId));
 }
 
+export type CreditPool = "monthly" | "topup";
+
+function poolColumn(pool: CreditPool) {
+  return pool === "monthly"
+    ? organizationSubscriptions.monthlyRemaining
+    : organizationSubscriptions.topupRemaining;
+}
+
 /**
- * Set credits aside for a provider call, but only if the balances are still
- * the ones the caller read: a compare-and-set, so concurrent holds cannot both
- * spend the same credits. Returns false when another write got there first
- * and the caller should re-read and retry.
+ * Hold credits for a provider call on one pool, but only if that balance is
+ * still the one the caller read: a compare-and-set, so concurrent holds cannot
+ * both spend the same credits. Returns false when another write got there
+ * first and the caller should re-read and retry. The ledger row's id is the
+ * hold's lockId, so settleHold can find it.
  *
  * The ledger row follows the update rather than sharing a batch with it,
  * because neither D1 nor Postgres can make an insert conditional on another
@@ -212,48 +221,97 @@ async function rollExpiredPeriod(args: {
  * ledger row: the customer is never under-charged, only over-held.
  */
 async function holdCredits(args: {
+  lockId: string;
   organizationId: string;
-  expectedMonthly: number;
-  expectedTopup: number;
-  monthlyDeduct: number;
-  topupDeduct: number;
+  pool: CreditPool;
+  expected: number;
+  credits: number;
   creditFeature: string | null;
 }): Promise<boolean> {
+  const column = poolColumn(args.pool);
   const held = await db
     .update(organizationSubscriptions)
     .set({
-      monthlyRemaining: args.expectedMonthly - args.monthlyDeduct,
-      topupRemaining: args.expectedTopup - args.topupDeduct,
+      [args.pool === "monthly" ? "monthlyRemaining" : "topupRemaining"]:
+        args.expected - args.credits,
       updatedAt: nowIso(),
     })
     .where(
       and(
         eq(organizationSubscriptions.organizationId, args.organizationId),
-        eq(organizationSubscriptions.monthlyRemaining, args.expectedMonthly),
-        eq(organizationSubscriptions.topupRemaining, args.expectedTopup),
+        eq(column, args.expected),
       ),
     )
     .returning({ organizationId: organizationSubscriptions.organizationId });
   if (held.length === 0) return false;
 
-  await db.insert(creditLedgerEntries).values(
-    ledgerValues({
+  await db.insert(creditLedgerEntries).values({
+    ...ledgerValues({
       organizationId: args.organizationId,
       kind: "spend",
-      monthlyDelta: -args.monthlyDeduct,
-      topupDelta: -args.topupDeduct,
+      [args.pool === "monthly" ? "monthlyDelta" : "topupDelta"]: -args.credits,
       creditFeature: args.creditFeature,
       note: "Held for a provider call",
     }),
-  );
+    id: args.lockId,
+  });
   return true;
 }
 
 /**
- * Deduct a spend and record it; negative deducts return credits, which is how
- * a hold is settled down to the real cost. The balance columns are updated
- * with SQL arithmetic rather than a read-modify-write so concurrent spends
- * cannot lose each other's deductions.
+ * Settle a hold: return `refund` credits to the pool it was taken from (a
+ * negative refund charges a shortfall there). The settlement row's id is
+ * derived from the hold's, so a repeated settle inserts nothing and changes no
+ * balance. The row goes first: a crash before the balance update leaves the
+ * customer over-held, never refunded twice.
+ */
+async function settleHold(args: {
+  lockId: string;
+  pool: CreditPool;
+  refund: number;
+  creditFeature: string | null;
+  costUsd: number | null;
+}) {
+  const [holdRow] = await db
+    .select({ organizationId: creditLedgerEntries.organizationId })
+    .from(creditLedgerEntries)
+    .where(eq(creditLedgerEntries.id, args.lockId));
+  if (!holdRow) throw new Error(`No credit hold ${args.lockId}`);
+
+  const inserted = await db
+    .insert(creditLedgerEntries)
+    .values({
+      ...ledgerValues({
+        organizationId: holdRow.organizationId,
+        kind: "spend",
+        [args.pool === "monthly" ? "monthlyDelta" : "topupDelta"]: args.refund,
+        creditFeature: args.creditFeature,
+        costUsd: args.costUsd,
+        note: "Settled a provider call",
+      }),
+      id: `${args.lockId}:settle`,
+    })
+    .onConflictDoNothing()
+    .returning({ id: creditLedgerEntries.id });
+  if (inserted.length === 0 || args.refund === 0) return;
+
+  const column = poolColumn(args.pool);
+  await db
+    .update(organizationSubscriptions)
+    .set({
+      [args.pool === "monthly" ? "monthlyRemaining" : "topupRemaining"]:
+        sql`${column} + ${args.refund}`,
+      updatedAt: nowIso(),
+    })
+    .where(
+      eq(organizationSubscriptions.organizationId, holdRow.organizationId),
+    );
+}
+
+/**
+ * Deduct a spend and record it. The balance columns are updated with SQL
+ * arithmetic rather than a read-modify-write so concurrent spends cannot lose
+ * each other's deductions.
  */
 async function recordSpend(args: {
   organizationId: string;
@@ -401,6 +459,7 @@ export const LocalBillingRepository = {
   createSubscription,
   rollExpiredPeriod,
   holdCredits,
+  settleHold,
   recordSpend,
   listLedgerEntries,
   assignPlan,

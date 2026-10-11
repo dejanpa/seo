@@ -23,9 +23,14 @@ vi.mock("@/server/lib/posthog", () => ({ captureServerEvent: vi.fn() }));
 
 const ORG = "org_1";
 const CUSTOMER = { organizationId: ORG, userEmail: "a@b.c", userId: "u_1" };
-// Raw USD that converts to exactly 40 / 10 credits after the 1.28 markup.
-const FORTY_CREDITS_USD = 40 / 1280;
+// Raw USD that converts to exactly 10 credits after the 1.28 markup.
 const TEN_CREDITS_USD = 10 / 1280;
+const reserve = (callCredits: number[]) =>
+  billing.reserveUsageCredits({
+    customer: CUSTOMER,
+    customerId: ORG,
+    callCredits,
+  });
 
 let client: Client;
 let billing: typeof SubscriptionModule;
@@ -58,7 +63,7 @@ beforeAll(async () => {
       "CREATE TABLE user (id text PRIMARY KEY);",
       "CREATE TABLE session (id text PRIMARY KEY);",
       `INSERT INTO organization (id) VALUES ('${ORG}');`,
-      ...readFileSync("drizzle/0043_plans_and_admin.sql", "utf8").split(
+      ...readFileSync("drizzle/sqlite/0055_plans_and_admin.sql", "utf8").split(
         "--> statement-breakpoint",
       ),
       "INSERT INTO plans (id, slug, name, monthly_credits) VALUES ('plan_1', 'pro', 'Pro', 100);",
@@ -85,12 +90,7 @@ beforeEach(async () => {
 describe("local billing credit holds", () => {
   it("never lets concurrent calls hold more than the balance", async () => {
     const results = await Promise.allSettled(
-      Array.from({ length: 5 }, () =>
-        billing.reserveUsageCredits({
-          customerId: ORG,
-          estimateUsd: FORTY_CREDITS_USD,
-        }),
-      ),
+      Array.from({ length: 5 }, () => reserve([40])),
     );
 
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(2);
@@ -101,15 +101,12 @@ describe("local billing credit holds", () => {
   });
 
   it("returns the unused part of a hold when the call costs less", async () => {
-    const hold = await billing.reserveUsageCredits({
-      customerId: ORG,
-      estimateUsd: FORTY_CREDITS_USD,
-    });
+    const { holds } = await reserve([40]);
     await billing.settleUsageCredits({
       customer: CUSTOMER,
-      hold,
+      hold: holds[0],
       creditFeature: "keyword_research",
-      costUsd: TEN_CREDITS_USD,
+      costs: [{ costUsd: TEN_CREDITS_USD, path: ["v3", "serp"] }],
     });
 
     expect(await balance()).toMatchObject({ monthly_remaining: 90 });
@@ -117,5 +114,14 @@ describe("local billing credit holds", () => {
       "SELECT SUM(monthly_delta) AS spent FROM credit_ledger_entries",
     );
     expect(ledger.rows[0]).toMatchObject({ spent: -10 });
+  });
+
+  // A retried finalize must not refund the hold twice.
+  it("settles a hold only once", async () => {
+    const { holds } = await reserve([40]);
+    await billing.finalizeHold(holds[0], 0, {});
+    await billing.finalizeHold(holds[0], 0, {});
+
+    expect(await balance()).toMatchObject({ monthly_remaining: 100 });
   });
 });

@@ -1,5 +1,7 @@
 export * from "./app.schema";
 export * from "./project-context.schema";
+export * from "./reports.schema";
+export * from "./report-templates.schema";
 export * from "./audit.schema";
 export * from "./sam.schema";
 export * from "./better-auth-schema";
@@ -9,3 +11,4 @@ export * from "./login-events.schema";
 export * from "./ga4.schema";
 export * from "./gsc.schema";
 export * from "./telemetry.schema";
+export * from "./ai-visibility.schema";

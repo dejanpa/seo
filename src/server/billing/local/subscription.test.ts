@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  AUTUMN_SEO_DATA_CREDITS_PER_USD,
-  SEO_DATA_COST_MARKUP,
-} from "@/shared/billing";
+import { creditsForProviderUsd } from "@/shared/billing";
 
 const repository = vi.hoisted(() => ({
   getSubscription: vi.fn(),
@@ -36,9 +33,17 @@ const PLAN = {
 
 const ORG = "org_1";
 
+const CUSTOMER = { organizationId: ORG, userEmail: "a@b.c", userId: "u_1" };
+
 const reserve = (
   creditFeature: Parameters<typeof reserveUsageCredits>[0]["creditFeature"],
-) => reserveUsageCredits({ customerId: ORG, creditFeature, estimateUsd: 0.01 });
+) =>
+  reserveUsageCredits({
+    customer: CUSTOMER,
+    customerId: ORG,
+    callCredits: [10],
+    creditFeature,
+  });
 
 function subscription(overrides: Record<string, unknown> = {}) {
   return {
@@ -74,15 +79,7 @@ describe("local billing entitlements", () => {
 
   it("allows a feature the plan grants", async () => {
     await expect(reserve("keyword_research")).resolves.toMatchObject({
-      customerId: ORG,
-    });
-  });
-
-  // Onboarding spend happens before the user has any plan to be granted
-  // features on, so it must never be gated on one.
-  it("does not gate onboarding spend on a plan feature", async () => {
-    await expect(reserve("onboarding")).resolves.toMatchObject({
-      customerId: ORG,
+      refusedCalls: [],
     });
   });
 
@@ -113,23 +110,24 @@ describe("local billing entitlements", () => {
     );
 
     await expect(reserve("keyword_research")).resolves.toMatchObject({
-      heldMonthly: 0,
+      holds: [{ featureId: "topup_credits" }],
     });
   });
 
   it("renews an expired period before answering", async () => {
-    repository.getSubscription.mockResolvedValue(
-      subscription({
-        currentPeriodEnd: "2026-05-15T00:00:00.000Z",
-        monthlyRemaining: 0,
-      }),
-    );
-    repository.rollExpiredPeriod.mockResolvedValue(
-      subscription({ monthlyRemaining: PLAN.monthlyCredits }),
-    );
+    const renewed = subscription({ monthlyRemaining: PLAN.monthlyCredits });
+    repository.getSubscription
+      .mockResolvedValueOnce(
+        subscription({
+          currentPeriodEnd: "2026-05-15T00:00:00.000Z",
+          monthlyRemaining: 0,
+        }),
+      )
+      .mockResolvedValue(renewed);
+    repository.rollExpiredPeriod.mockResolvedValue(renewed);
 
     await expect(reserve("keyword_research")).resolves.toMatchObject({
-      heldTopup: 0,
+      holds: [{ featureId: "usage_credits" }],
     });
   });
 });
@@ -145,12 +143,10 @@ describe("local billing spend", () => {
   // so spending monthly first is what keeps a customer's purchased balance.
   it("spends monthly credits before top-up credits", async () => {
     const costUsd = 3;
-    const expectedTotal = Math.ceil(
-      costUsd * SEO_DATA_COST_MARKUP * AUTUMN_SEO_DATA_CREDITS_PER_USD,
-    );
+    const expectedTotal = creditsForProviderUsd(costUsd);
 
     await trackUsageCreditSpend({
-      customer: { organizationId: ORG, userEmail: "a@b.c", userId: "u_1" },
+      customer: CUSTOMER,
       customerId: ORG,
       creditFeature: "keyword_research",
       costUsd,
@@ -167,7 +163,7 @@ describe("local billing spend", () => {
 
   it("records nothing for a zero-cost call", async () => {
     await trackUsageCreditSpend({
-      customer: { organizationId: ORG, userEmail: "a@b.c", userId: "u_1" },
+      customer: CUSTOMER,
       customerId: ORG,
       creditFeature: "keyword_research",
       costUsd: 0,

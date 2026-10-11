@@ -23,6 +23,10 @@ export const user = sqliteTable("user", {
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
   analyticsOptedOut: integer("analytics_opted_out", { mode: "boolean" }),
+  // The org this user last worked in; seeds session.activeOrganizationId at
+  // sign-in (validated against a live membership first). Not a FK: an org
+  // delete must not fail because a user's last-active pointer references it.
+  lastActiveOrganizationId: text("last_active_organization_id"),
   // Better Auth admin plugin. `role` is a comma-separated role list ("user",
   // "admin"); null is treated as the default "user" role.
   role: text("role"),
@@ -90,6 +94,11 @@ export const account = sqliteTable(
       table.accountId,
       table.providerId,
     ),
+    uniqueIndex("account_google_grant_owner_idx")
+      .on(table.userId, table.providerId, table.accountId)
+      .where(
+        sql`${table.providerId} in ('google-search-console', 'google-analytics')`,
+      ),
   ],
 );
 
@@ -145,6 +154,10 @@ export const member = sqliteTable(
   (table) => [
     index("member_organizationId_idx").on(table.organizationId),
     index("member_userId_idx").on(table.userId),
+    uniqueIndex("member_organizationId_userId_uidx").on(
+      table.organizationId,
+      table.userId,
+    ),
   ],
 );
 

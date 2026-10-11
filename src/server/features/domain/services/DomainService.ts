@@ -12,7 +12,7 @@ import { mapKeywordItem } from "@/server/features/domain/services/domainKeywordM
 import { getKeywordsPage } from "@/server/features/domain/services/domainKeywordsPage";
 import { getPagesPage } from "@/server/features/domain/services/domainPagesPage";
 
-// Lets a caller attribute spend to its own feature (e.g. onboarding). Applied
+// Lets a caller attribute spend to its own feature (e.g. the SAM agent). Applied
 // to the DataForSEO call, not the cache key, so cached results are shared
 // across callers.
 type MeteringOverrides = {
@@ -57,27 +57,41 @@ const domainOverviewResultSchema = z.object({
   fetchedAt: z.string(),
 });
 
-type RankMetrics = {
-  pos_1?: number;
-  pos_2_3?: number;
-  pos_4_10?: number;
-  pos_11_20?: number;
-  pos_21_30?: number;
-  pos_31_40?: number;
-  pos_41_50?: number;
-  pos_51_60?: number;
-  pos_61_70?: number;
-  pos_71_80?: number;
-  pos_81_90?: number;
-  pos_91_100?: number;
-  etv?: number;
-  count?: number;
-  estimated_paid_traffic_cost?: number;
-  is_new?: number;
-  is_up?: number;
-  is_down?: number;
-  is_lost?: number;
-};
+// Labs rank-overview metrics block. Upstream types only etv/count; the position
+// buckets and movement counts the overview charts read are validated here, so
+// a missing or malformed field degrades to "no data" instead of a crash.
+const count = z
+  .number()
+  .nullish()
+  .transform((value) => value ?? undefined);
+const rankMetricsSchema = z.object({
+  pos_1: count,
+  pos_2_3: count,
+  pos_4_10: count,
+  pos_11_20: count,
+  pos_21_30: count,
+  pos_31_40: count,
+  pos_41_50: count,
+  pos_51_60: count,
+  pos_61_70: count,
+  pos_71_80: count,
+  pos_81_90: count,
+  pos_91_100: count,
+  etv: count,
+  count,
+  estimated_paid_traffic_cost: count,
+  is_new: count,
+  is_up: count,
+  is_down: count,
+  is_lost: count,
+});
+
+type RankMetrics = z.infer<typeof rankMetricsSchema>;
+
+function parseRankMetrics(value: unknown): RankMetrics | undefined {
+  const parsed = rankMetricsSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
 
 function sum(...values: Array<number | undefined>): number {
   return values.reduce((total: number, value) => total + (value ?? 0), 0);
@@ -167,8 +181,8 @@ async function getOverview(
   });
 
   const metrics = metricsResponse[0];
-  const organic: RankMetrics | undefined = metrics?.metrics?.organic;
-  const paid: RankMetrics | undefined = metrics?.metrics?.paid;
+  const organic = parseRankMetrics(metrics?.metrics?.organic);
+  const paid = parseRankMetrics(metrics?.metrics?.paid);
 
   const organicTraffic = round(organic?.etv);
   const organicKeywords = round(organic?.count);
