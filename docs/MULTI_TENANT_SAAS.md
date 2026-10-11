@@ -96,10 +96,15 @@ always answer "where did the credits go".
 Unset `BILLING_PROVIDER` (or set it to `autumn`). The admin console stays
 readable but refuses plan and credit changes, since Autumn owns them there.
 
-## One user, one workspace
+## Workspaces and members
 
-Users cannot create or be invited into a second workspace
-(`allowUserToCreateOrganization: false`, `invitationLimit: 0` in
-`src/lib/auth-config.ts`). This is a billing invariant, not a UI limitation:
-MCP API keys bill the user's first organization. Read the comment in that file
-before lifting it.
+A workspace is an organization. Since upstream v0.1.7 an organization can have
+several members: owners invite people from **Settings → Organization**, and a
+user who belongs to more than one organization switches between them from the
+account menu. Users still cannot create organizations themselves
+(`allowUserToCreateOrganization: false` in `src/lib/auth-config.ts`); each
+signup gets one, created server-side.
+
+Plans, credits and the credit ledger belong to the organization, so every
+member spends from the same balance and the admin console lists organizations,
+not people.
