@@ -1,4 +1,13 @@
-import * as React from "react";
+import { Button } from "@/client/components/ui/button";
+import { Checkbox } from "@/client/components/ui/checkbox";
+import {
+  Field,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/client/components/ui/field";
+import { Input } from "@/client/components/ui/input";
+import { Spinner } from "@/client/components/ui/spinner";
 import {
   PLAN_FEATURE_KEYS,
   planFeatureLabel,
@@ -55,6 +64,39 @@ export function PlanForm({
         : [...values.featureKeys, key],
     );
 
+  const field = (
+    key: "name" | "slug" | "description",
+    label: string,
+    options: { required?: boolean; disabled?: boolean } = {},
+  ) => (
+    <Field>
+      <FieldLabel htmlFor={`plan-${key}`}>{label}</FieldLabel>
+      <Input
+        id={`plan-${key}`}
+        value={values[key]}
+        onChange={(event) => set(key, event.target.value)}
+        required={options.required}
+        disabled={options.disabled}
+      />
+    </Field>
+  );
+
+  const numberField = (
+    key: "monthlyCredits" | "priceUsdCents" | "sortOrder",
+    label: string,
+  ) => (
+    <Field>
+      <FieldLabel htmlFor={`plan-${key}`}>{label}</FieldLabel>
+      <Input
+        id={`plan-${key}`}
+        type="number"
+        min={0}
+        value={values[key]}
+        onChange={(event) => set(key, Number(event.target.value))}
+      />
+    </Field>
+  );
+
   return (
     <form
       className="space-y-4"
@@ -64,114 +106,48 @@ export function PlanForm({
       }}
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="form-control">
-          <span className="label-text text-xs">Name</span>
-          <input
-            className="input input-bordered input-sm"
-            value={values.name}
-            onChange={(event) => set("name", event.target.value)}
-            required
-          />
-        </label>
-        <label className="form-control">
-          <span className="label-text text-xs">Slug</span>
-          <input
-            className="input input-bordered input-sm"
-            value={values.slug}
-            onChange={(event) => set("slug", event.target.value)}
-            disabled={!slugEditable}
-            required
-          />
-        </label>
+        {field("name", "Name", { required: true })}
+        {field("slug", "Slug", { required: true, disabled: !slugEditable })}
       </div>
 
-      <label className="form-control">
-        <span className="label-text text-xs">Description</span>
-        <input
-          className="input input-bordered input-sm"
-          value={values.description}
-          onChange={(event) => set("description", event.target.value)}
-        />
-      </label>
+      {field("description", "Description")}
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <label className="form-control">
-          <span className="label-text text-xs">
-            Monthly credits (1000 = $1 of data)
-          </span>
-          <input
-            type="number"
-            min={0}
-            className="input input-bordered input-sm"
-            value={values.monthlyCredits}
-            onChange={(event) =>
-              set("monthlyCredits", Number(event.target.value))
-            }
-          />
-        </label>
-        <label className="form-control">
-          <span className="label-text text-xs">Price (cents / month)</span>
-          <input
-            type="number"
-            min={0}
-            className="input input-bordered input-sm"
-            value={values.priceUsdCents}
-            onChange={(event) =>
-              set("priceUsdCents", Number(event.target.value))
-            }
-          />
-        </label>
-        <label className="form-control">
-          <span className="label-text text-xs">Sort order</span>
-          <input
-            type="number"
-            min={0}
-            className="input input-bordered input-sm"
-            value={values.sortOrder}
-            onChange={(event) => set("sortOrder", Number(event.target.value))}
-          />
-        </label>
+        {numberField("monthlyCredits", "Monthly credits (1000 = $1 of data)")}
+        {numberField("priceUsdCents", "Price (cents / month)")}
+        {numberField("sortOrder", "Sort order")}
       </div>
 
-      <fieldset className="space-y-2">
-        <legend className="label-text text-xs">
+      <FieldSet>
+        <FieldLegend variant="label">
           What this plan may use — anything unchecked is refused before it costs
           you money
-        </legend>
+        </FieldLegend>
         <div className="grid gap-2 sm:grid-cols-3">
           {PLAN_FEATURE_KEYS.map((key) => (
-            <label key={key} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="checkbox checkbox-sm"
+            <label
+              key={key}
+              className="flex cursor-pointer items-center gap-2 text-sm"
+            >
+              <Checkbox
                 checked={values.featureKeys.includes(key)}
-                onChange={() => toggleFeature(key)}
+                onCheckedChange={() => toggleFeature(key)}
               />
               {planFeatureLabel(key)}
             </label>
           ))}
         </div>
-      </fieldset>
+      </FieldSet>
 
       <div className="flex gap-2">
-        <button
-          type="submit"
-          className="btn btn-primary btn-sm"
-          disabled={pending}
-        >
-          {pending ? (
-            <span className="loading loading-spinner loading-xs" />
-          ) : null}
+        <Button type="submit" disabled={pending}>
+          {pending ? <Spinner /> : null}
           {submitLabel}
-        </button>
+        </Button>
         {onCancel ? (
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={onCancel}
-          >
+          <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
         ) : null}
       </div>
     </form>

@@ -1,3 +1,12 @@
+import {
+  Table,
+  TableBody,
+  TableCard,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/client/components/ui/table";
 import { formatDateTime } from "@/client/features/admin/format";
 
 type LoginEvent = {
@@ -11,47 +20,47 @@ type LoginEvent = {
  *  session hook, so it survives sign-out and session expiry. */
 export function UserLoginHistory({ events }: { events: LoginEvent[] }) {
   return (
-    <section className="rounded-lg border border-base-300 p-4">
-      <h2 className="mb-3 font-semibold">Sign-in history</h2>
-      <div className="overflow-x-auto">
-        <table className="table table-sm">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>IP</th>
-              <th>Device</th>
-            </tr>
-          </thead>
-          <tbody>
+    <section className="space-y-3">
+      <h2 className="font-semibold">Sign-in history</h2>
+      <TableCard>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>When</TableHead>
+              <TableHead>IP</TableHead>
+              <TableHead>Device</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {events.map((event) => (
-              <tr key={event.id}>
-                <td className="whitespace-nowrap">
+              <TableRow key={event.id}>
+                <TableCell className="whitespace-nowrap">
                   {formatDateTime(event.createdAt)}
-                </td>
-                <td className="font-mono text-xs" data-ph-mask>
+                </TableCell>
+                <TableCell className="font-mono text-xs" data-ph-mask>
                   {event.ipAddress ?? "—"}
-                </td>
-                <td
-                  className="max-w-md truncate text-xs text-base-content/60"
+                </TableCell>
+                <TableCell
+                  className="max-w-md truncate text-xs text-muted-foreground"
                   title={event.userAgent ?? undefined}
                 >
                   {event.userAgent ?? "—"}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {events.length === 0 ? (
-              <tr>
-                <td
+              <TableRow>
+                <TableCell
                   colSpan={3}
-                  className="py-6 text-center text-base-content/60"
+                  className="py-6 text-center text-muted-foreground"
                 >
                   No sign-ins recorded yet.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : null}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableCard>
     </section>
   );
 }

@@ -1,8 +1,28 @@
 import * as React from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { BackLink } from "@/client/components/PageHeader";
+import { Spinner } from "@/client/components/Spinner";
+import { Badge } from "@/client/components/ui/badge";
+import { Button } from "@/client/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/client/components/ui/card";
+import { Checkbox } from "@/client/components/ui/checkbox";
+import { Field, FieldLabel } from "@/client/components/ui/field";
+import { Input } from "@/client/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/client/components/ui/select";
 import {
   adjustAdminCredits,
   assignAdminPlan,
@@ -123,219 +143,229 @@ function AdminWorkspacePage() {
   if (detail.isLoading) {
     return (
       <div className="flex justify-center py-10">
-        <span className="loading loading-spinner loading-md" />
+        <Spinner />
       </div>
     );
   }
 
   if (!workspace) {
-    return <p className="text-sm text-base-content/60">Workspace not found.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">Workspace not found.</p>
+    );
   }
 
   const plans = plansQuery.data ?? [];
+  const planItems = [
+    { value: "", label: "Select a plan…" },
+    ...plans
+      .filter((plan) => !plan.archivedAt || plan.id === workspace.planId)
+      .map((plan) => ({ value: plan.id, label: plan.name })),
+  ];
   // Bound outside the JSX so the null check narrows inside the click handler.
   const linkedUserId = workspace.userId;
+  const suspended = workspace.status === "suspended";
 
   return (
     <div className="space-y-5">
-      <Link to="/admin" className="inline-flex items-center gap-1 text-sm">
-        <ArrowLeft className="size-4" />
-        All workspaces
-      </Link>
+      <BackLink to="/admin">All workspaces</BackLink>
 
       {readOnly ? <LocalBillingNotice /> : null}
 
-      <section className="rounded-lg border border-base-300 p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-semibold" data-ph-mask>
-              {workspace.userEmail ?? workspace.organizationName}
-            </h2>
-            <p className="text-sm text-base-content/60">
-              {workspace.userName ?? "No account linked"} ·{" "}
-              {workspace.organizationName}
-            </p>
-            <p className="text-sm text-base-content/60">
-              Signed up {formatDate(workspace.userCreatedAt)} · workspace
-              created {formatDate(workspace.organizationCreatedAt)} · last
-              sign-in {formatDateTime(workspace.lastLoginAt)}
-            </p>
-            <p className="mt-2 text-sm">
-              {workspace.planName ?? "No plan"} ·{" "}
-              {formatCredits(workspace.creditsRemaining)} credits left (
-              {formatCreditsAsUsd(workspace.creditsRemaining)}) · period ends{" "}
-              {formatDate(workspace.currentPeriodEnd)}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {detail.data?.planFeatureKeys.map((key) => (
-                <span key={key} className="badge badge-outline badge-sm">
-                  {planFeatureLabel(key)}
-                </span>
-              ))}
+      <Card>
+        <CardContent>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-semibold" data-ph-mask>
+                {workspace.userEmail ?? workspace.organizationName}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {workspace.userName ?? "No account linked"} ·{" "}
+                {workspace.organizationName}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Signed up {formatDate(workspace.userCreatedAt)} · workspace
+                created {formatDate(workspace.organizationCreatedAt)} · last
+                sign-in {formatDateTime(workspace.lastLoginAt)}
+              </p>
+              <p className="mt-2 text-sm">
+                {workspace.planName ?? "No plan"} ·{" "}
+                {formatCredits(workspace.creditsRemaining)} credits left (
+                {formatCreditsAsUsd(workspace.creditsRemaining)}) · period ends{" "}
+                {formatDate(workspace.currentPeriodEnd)}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {detail.data?.planFeatureKeys.map((key) => (
+                  <Badge key={key} variant="outline">
+                    {planFeatureLabel(key)}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <Badge variant={suspended ? "warning" : "secondary"}>
+                {workspace.status ?? "no subscription"}
+              </Badge>
+              {linkedUserId ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  disabled={roleMutation.isPending}
+                  onClick={() =>
+                    roleMutation.mutate({
+                      userId: linkedUserId,
+                      isAdmin: !workspace.isAdmin,
+                    })
+                  }
+                >
+                  {workspace.isAdmin ? "Revoke admin" : "Make admin"}
+                </Button>
+              ) : null}
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <span
-              className={`badge ${
-                workspace.status === "suspended"
-                  ? "badge-warning"
-                  : "badge-ghost"
-              }`}
-            >
-              {workspace.status ?? "no subscription"}
-            </span>
-            {linkedUserId ? (
-              <button
-                type="button"
-                className="btn btn-ghost btn-xs"
-                disabled={roleMutation.isPending}
-                onClick={() =>
-                  roleMutation.mutate({
-                    userId: linkedUserId,
-                    isAdmin: !workspace.isAdmin,
-                  })
-                }
-              >
-                {workspace.isAdmin ? "Revoke admin" : "Make admin"}
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-lg border border-base-300 p-4">
-        <h2 className="mb-3 font-semibold">Plan</h2>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="form-control">
-            <span className="label-text text-xs">Plan</span>
-            <select
-              className="select select-bordered select-sm"
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h2>Plan</h2>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-end gap-3">
+          <Field className="w-56">
+            <FieldLabel>Plan</FieldLabel>
+            <Select
+              items={planItems}
               value={planId}
-              onChange={(event) => setPlanId(event.target.value)}
+              onValueChange={(value) => setPlanId(value ?? "")}
               disabled={readOnly}
             >
-              <option value="">Select a plan…</option>
-              {plans
-                .filter(
-                  (plan) => !plan.archivedAt || plan.id === workspace.planId,
-                )
-                .map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name}
-                  </option>
+              <SelectTrigger aria-label="Plan">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {planItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
                 ))}
-            </select>
-          </label>
-          <label className="flex items-center gap-2 pb-2 text-sm">
-            <input
-              type="checkbox"
-              className="checkbox checkbox-sm"
+              </SelectContent>
+            </Select>
+          </Field>
+          <label className="flex cursor-pointer items-center gap-2 pb-2.5 text-sm">
+            <Checkbox
               checked={resetCredits}
-              onChange={(event) => setResetCredits(event.target.checked)}
+              onCheckedChange={(checked) => setResetCredits(checked)}
               disabled={readOnly}
             />
             Start a new period with this plan&apos;s credits
           </label>
-          <button
+          <Button
             type="button"
-            className="btn btn-primary btn-sm"
             disabled={readOnly || !planId || assignMutation.isPending}
             onClick={() => assignMutation.mutate()}
           >
             Assign plan
-          </button>
-        </div>
-      </section>
+          </Button>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-lg border border-base-300 p-4">
-        <h2 className="mb-3 font-semibold">Credits</h2>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="form-control">
-            <span className="label-text text-xs">Monthly ±</span>
-            <input
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h2>Credits</h2>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-end gap-3">
+          <Field className="w-36">
+            <FieldLabel htmlFor="monthly-delta">Monthly ±</FieldLabel>
+            <Input
+              id="monthly-delta"
               type="number"
-              className="input input-bordered input-sm w-32"
               value={monthlyDelta}
               onChange={(event) => setMonthlyDelta(Number(event.target.value))}
               disabled={readOnly}
             />
-          </label>
-          <label className="form-control">
-            <span className="label-text text-xs">Top-up ± (rolls over)</span>
-            <input
+          </Field>
+          <Field className="w-44">
+            <FieldLabel htmlFor="topup-delta">Top-up ± (rolls over)</FieldLabel>
+            <Input
+              id="topup-delta"
               type="number"
-              className="input input-bordered input-sm w-32"
               value={topupDelta}
               onChange={(event) => setTopupDelta(Number(event.target.value))}
               disabled={readOnly}
             />
-          </label>
-          <button
+          </Field>
+          <Button
             type="button"
-            className="btn btn-sm"
+            variant="outline"
             disabled={readOnly || creditsMutation.isPending}
             onClick={() => creditsMutation.mutate()}
           >
             Apply adjustment
-          </button>
-        </div>
-      </section>
+          </Button>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-lg border border-base-300 p-4">
-        <h2 className="mb-3 font-semibold">Access</h2>
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="form-control flex-1">
-            <span className="label-text text-xs">
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h2>Access</h2>
+          </CardTitle>
+          <CardDescription>
+            A suspended workspace keeps its data and credits but is refused by
+            every entitlement check until it is reactivated.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-end gap-3">
+          <Field className="min-w-64 flex-1">
+            <FieldLabel htmlFor="ledger-note">
               Note (recorded on the ledger entry)
-            </span>
-            <input
-              className="input input-bordered input-sm"
+            </FieldLabel>
+            <Input
+              id="ledger-note"
               value={note}
               onChange={(event) => setNote(event.target.value)}
               placeholder="Why are you making this change?"
             />
-          </label>
-          <button
+          </Field>
+          <Button
             type="button"
-            className={`btn btn-sm ${
-              workspace.status === "suspended" ? "btn-primary" : "btn-warning"
-            }`}
+            variant={suspended ? "default" : "destructive"}
             disabled={readOnly || statusMutation.isPending}
             onClick={() =>
-              statusMutation.mutate(
-                workspace.status === "suspended" ? "active" : "suspended",
-              )
+              statusMutation.mutate(suspended ? "active" : "suspended")
             }
           >
-            {workspace.status === "suspended"
-              ? "Reactivate workspace"
-              : "Suspend workspace"}
-          </button>
-        </div>
-        <p className="mt-2 text-xs text-base-content/60">
-          A suspended workspace keeps its data and credits but is refused by
-          every entitlement check until it is reactivated.
-        </p>
-      </section>
+            {suspended ? "Reactivate workspace" : "Suspend workspace"}
+          </Button>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-lg border border-base-300 p-4">
-        <h2 className="mb-3 font-semibold">
-          Projects ({detail.data?.projects.length ?? 0})
-        </h2>
-        <ul className="space-y-1 text-sm">
-          {detail.data?.projects.map((project) => (
-            <li key={project.id} className="flex justify-between gap-3">
-              <span>{project.name}</span>
-              <span className="text-base-content/60">
-                {project.domain ?? "no domain"}
-              </span>
-            </li>
-          ))}
-          {detail.data?.projects.length === 0 ? (
-            <li className="text-base-content/60">No projects yet.</li>
-          ) : null}
-        </ul>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h2>Projects ({detail.data?.projects.length ?? 0})</h2>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-1 text-sm">
+            {detail.data?.projects.map((project) => (
+              <li key={project.id} className="flex justify-between gap-3">
+                <span>{project.name}</span>
+                <span className="text-muted-foreground">
+                  {project.domain ?? "no domain"}
+                </span>
+              </li>
+            ))}
+            {detail.data?.projects.length === 0 ? (
+              <li className="text-muted-foreground">No projects yet.</li>
+            ) : null}
+          </ul>
+        </CardContent>
+      </Card>
 
       <UserLoginHistory events={detail.data?.loginEvents ?? []} />
 

@@ -1,6 +1,24 @@
 import * as React from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
+import { Spinner } from "@/client/components/Spinner";
+import { TablePagination } from "@/client/components/table/TablePagination";
+import { Badge } from "@/client/components/ui/badge";
+import { Button } from "@/client/components/ui/button";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/client/components/ui/input-group";
+import {
+  Table,
+  TableBody,
+  TableCard,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/client/components/ui/table";
 import {
   useAdminOverview,
   useAdminWorkspaces,
@@ -24,9 +42,6 @@ function AdminWorkspacesPage() {
   const overview = useAdminOverview();
   const workspaces = useAdminWorkspaces(search, page);
   const data = workspaces.data;
-  const pageCount = data
-    ? Math.max(Math.ceil(data.total / data.pageSize), 1)
-    : 1;
 
   const submitSearch = (event: React.FormEvent) => {
     event.preventDefault();
@@ -41,43 +56,43 @@ function AdminWorkspacesPage() {
       ) : null}
 
       <form onSubmit={submitSearch} className="flex gap-2">
-        <label className="input input-bordered input-sm flex flex-1 items-center gap-2">
-          <Search className="size-4 shrink-0 opacity-60" />
-          <input
+        <InputGroup className="flex-1">
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          <InputGroupInput
             type="search"
-            className="grow"
             placeholder="Search by email, name or workspace"
+            aria-label="Search workspaces"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
           />
-        </label>
-        <button type="submit" className="btn btn-sm btn-primary">
-          Search
-        </button>
+        </InputGroup>
+        <Button type="submit">Search</Button>
       </form>
 
       {workspaces.isLoading ? (
         <div className="flex justify-center py-10">
-          <span className="loading loading-spinner loading-md" />
+          <Spinner />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-base-300">
-          <table className="table table-sm">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Workspace</th>
-                <th>Plan</th>
-                <th className="text-right">Credits left</th>
-                <th>Status</th>
-                <th>Signed up</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
+        <TableCard>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Workspace</TableHead>
+                <TableHead>Plan</TableHead>
+                <TableHead className="text-right">Credits left</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Signed up</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data?.rows.map((row) => (
-                <tr key={row.organizationId} className="hover">
-                  <td>
+                <TableRow key={row.organizationId}>
+                  <TableCell>
                     <Link
                       to="/admin/$organizationId"
                       params={{ organizationId: row.organizationId }}
@@ -86,7 +101,7 @@ function AdminWorkspacesPage() {
                       <span className="font-medium" data-ph-mask>
                         {row.userEmail ?? "No account linked"}
                       </span>
-                      <span className="text-xs text-base-content/60">
+                      <span className="text-xs text-muted-foreground">
                         {row.userName ?? row.organizationSlug}
                         {row.isAdmin ? " · admin" : ""}
                         {row.userId && !row.emailVerified
@@ -94,84 +109,73 @@ function AdminWorkspacesPage() {
                           : ""}
                       </span>
                     </Link>
-                  </td>
-                  <td className="text-sm">{row.organizationName}</td>
-                  <td className="text-sm">{row.planName ?? "—"}</td>
-                  <td className="text-right text-sm tabular-nums">
+                  </TableCell>
+                  <TableCell>{row.organizationName}</TableCell>
+                  <TableCell>{row.planName ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">
                     {formatCredits(row.creditsRemaining)}
-                    <span className="ml-1 text-xs text-base-content/50">
+                    <span className="ml-1 text-xs text-muted-foreground">
                       {formatCreditsAsUsd(row.creditsRemaining)}
                     </span>
-                  </td>
-                  <td>
-                    <span
-                      className={`badge badge-sm ${
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
                         row.banned
-                          ? "badge-error"
+                          ? "destructive"
                           : row.status === "suspended"
-                            ? "badge-warning"
-                            : "badge-ghost"
-                      }`}
+                            ? "warning"
+                            : "secondary"
+                      }
                     >
                       {row.banned
                         ? "banned"
                         : (row.status ?? "no subscription")}
-                    </span>
-                  </td>
-                  <td className="text-sm">
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     {formatDate(row.userCreatedAt ?? row.organizationCreatedAt)}
-                  </td>
-                  <td className="text-right">
-                    <Link
-                      to="/admin/$organizationId"
-                      params={{ organizationId: row.organizationId }}
-                      className="btn btn-ghost btn-xs"
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      nativeButton={false}
+                      render={
+                        <Link
+                          to="/admin/$organizationId"
+                          params={{ organizationId: row.organizationId }}
+                        />
+                      }
                     >
                       Edit
-                    </Link>
-                  </td>
-                </tr>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
               {data && data.rows.length === 0 ? (
-                <tr>
-                  <td
+                <TableRow>
+                  <TableCell
                     colSpan={7}
-                    className="py-8 text-center text-sm text-base-content/60"
+                    className="py-8 text-center text-muted-foreground"
                   >
                     No workspaces match that search.
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : null}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+          {data && data.total > data.pageSize ? (
+            <TablePagination
+              page={page}
+              pageSize={data.pageSize}
+              totalCount={data.total}
+              isLoading={workspaces.isFetching}
+              onPageChange={setPage}
+            />
+          ) : null}
+        </TableCard>
       )}
-
-      {data && data.total > data.pageSize ? (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-base-content/60">
-            {data.total} workspaces · page {data.page} of {pageCount}
-          </span>
-          <div className="join">
-            <button
-              type="button"
-              className="btn btn-sm join-item"
-              disabled={page <= 1}
-              onClick={() => setPage((value) => value - 1)}
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm join-item"
-              disabled={page >= pageCount}
-              onClick={() => setPage((value) => value + 1)}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

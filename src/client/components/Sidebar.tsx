@@ -11,6 +11,7 @@ import {
   CreditCard,
   LogOut,
   Settings,
+  ShieldCheck,
   User,
 } from "lucide-react";
 import { organizationContextQueryOptions } from "@/client/features/team/organizationQueries";
@@ -310,6 +311,16 @@ function AccountFooter({ ready }: { ready: boolean }) {
                   <CreditCard className="size-4" />
                   Billing
                 </DropdownMenuItem>
+                {viewerAdmin.data?.isAdmin ? (
+                  <DropdownMenuItem
+                    render={
+                      <Link to="/admin" onClick={() => setOpenMobile(false)} />
+                    }
+                  >
+                    <ShieldCheck className="size-4" />
+                    Admin
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>Theme</DropdownMenuLabel>
                   <div className="px-1 pb-1">

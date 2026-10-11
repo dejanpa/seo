@@ -1,3 +1,12 @@
+import {
+  Table,
+  TableBody,
+  TableCard,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/client/components/ui/table";
 import { formatCredits, formatDate } from "@/client/features/admin/format";
 import { creditFeatureLabel } from "@/shared/billing-credit-features";
 
@@ -14,57 +23,57 @@ type LedgerEntry = {
  *  grants, what each feature burned, and any operator adjustment. */
 export function WorkspaceLedgerTable({ entries }: { entries: LedgerEntry[] }) {
   return (
-    <section className="rounded-lg border border-base-300 p-4">
-      <h2 className="mb-3 font-semibold">Credit history</h2>
-      <div className="overflow-x-auto">
-        <table className="table table-sm">
-          <thead>
-            <tr>
-              <th>When</th>
-              <th>Kind</th>
-              <th>Feature</th>
-              <th className="text-right">Credits</th>
-              <th>Note</th>
-            </tr>
-          </thead>
-          <tbody>
+    <section className="space-y-3">
+      <h2 className="font-semibold">Credit history</h2>
+      <TableCard>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>When</TableHead>
+              <TableHead>Kind</TableHead>
+              <TableHead>Feature</TableHead>
+              <TableHead className="text-right">Credits</TableHead>
+              <TableHead>Note</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {entries.map((entry) => (
-              <tr key={entry.id}>
-                <td className="whitespace-nowrap">
+              <TableRow key={entry.id}>
+                <TableCell className="whitespace-nowrap">
                   {formatDate(entry.createdAt)}
-                </td>
-                <td>{entry.kind.replace(/_/g, " ")}</td>
-                <td>
+                </TableCell>
+                <TableCell>{entry.kind.replace(/_/g, " ")}</TableCell>
+                <TableCell>
                   {entry.creditFeature
                     ? creditFeatureLabel(entry.creditFeature)
                     : "\u2014"}
-                </td>
-                <td
+                </TableCell>
+                <TableCell
                   className={`text-right tabular-nums ${
-                    entry.creditsDelta < 0 ? "text-error" : "text-success"
+                    entry.creditsDelta < 0 ? "text-destructive" : "text-success"
                   }`}
                 >
                   {entry.creditsDelta > 0 ? "+" : ""}
                   {formatCredits(entry.creditsDelta)}
-                </td>
-                <td className="text-base-content/60">
+                </TableCell>
+                <TableCell className="text-muted-foreground">
                   {entry.note ?? "\u2014"}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {entries.length === 0 ? (
-              <tr>
-                <td
+              <TableRow>
+                <TableCell
                   colSpan={5}
-                  className="py-6 text-center text-base-content/60"
+                  className="py-6 text-center text-muted-foreground"
                 >
                   Nothing recorded yet.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : null}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableCard>
     </section>
   );
 }
