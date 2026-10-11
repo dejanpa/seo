@@ -43,7 +43,7 @@ export function PlanLockedSection({
 
   return (
     <div className={className} aria-disabled="true">
-      <p className="mb-2 flex items-center gap-1.5 text-xs text-base-content/50">
+      <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
         <Lock className="size-3.5" />
         {planFeatureLabel(featureKey)} is not included in your plan
       </p>

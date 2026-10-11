@@ -1,41 +1,38 @@
 ---
 name: setup-openseo
-description: Set up OpenSEO in the current AI agent. Use when a user pastes the OpenSEO installation prompt or asks to connect its plugin, MCP, and skills.
+description: Set up Rankloupe in the current AI agent. Use when a user pastes the Rankloupe installation prompt or asks to connect its plugin, MCP, and skills.
 metadata:
   internal: true
 ---
 
-Set up OpenSEO in this agent. Do what you can; guide me through anything that needs my input.
+Set up Rankloupe in this agent. Do what you can; guide me through anything that needs my input.
 
 ## 1. Check this agent
 
 - Identify this agent and its version. Ask only if you cannot tell.
-- Check for an existing OpenSEO connection. Preserve other integrations and avoid duplicates.
+- Check for an existing Rankloupe connection. Preserve other integrations and avoid duplicates.
 
 ## 2. Install the plugin first
 
-The official plugin bundles MCP + SEO skills, with OpenSEO namespacing and shared updates.
+The Rankloupe plugin bundles MCP + SEO skills, with Rankloupe namespacing and shared updates. It connects to the hosted Rankloupe service; for another Rankloupe instance, skip it and use step 3.
 
-- **Codex:** follow the [plugin guide](https://openseo.so/docs/codex-plugin).
-- **Claude Code:** follow the [plugin guide](https://openseo.so/docs/claude-code-plugin).
-- **Other agents:** verify plugin compatibility in their current documentation.
+- **Claude Code:** run `/plugin marketplace add dejanpa/seo`, then `/plugin install rankloupe@rankloupe`.
+- **Codex and other agents:** check the agent's current documentation for installing a plugin from the GitHub repository `dejanpa/seo` (plugin `rankloupe`). If it has no plugin support, use step 3.
 - Check the installed client's help before running commands.
 
 ## 3. Fall back to MCP + skills
 
 If the plugin is unsupported:
 
-- Add `https://app.openseo.so/mcp` using the [MCP guide](https://openseo.so/docs/mcp).
-- Install the [public SEO skills](https://openseo.so/docs/skills/setup) for this agent only.
+- Add `https://seo.auto-ai.cloud/mcp` as a remote (HTTP) MCP server.
+- Install the public SEO skills for this agent only: `npx skills add dejanpa/seo --skill '*'`, adding `--agent claude-code` or `--agent codex` to target one agent.
 - Do not copy internal repository skills or duplicate bundled skills.
-- If skills are unsupported, use MCP alone and link to the workflow guides.
-
-For self-hosted OpenSEO, use its endpoint directly; the official plugin targets the hosted service.
+- If skills are unsupported, use MCP alone.
 
 ## 4. Sign in
 
 - **Prefer OAuth.** Start login; let me approve it in my browser.
-- **No OAuth?** Send me to `https://app.openseo.so/settings` → API keys. Have me enter the key in the client's secret settings or environment, never chat or a repository.
+- **No OAuth?** Send me to `https://seo.auto-ai.cloud/settings` → API keys. Have me enter the key in the client's secret settings or environment, never chat or a repository.
 - **Manual setup needed?** Use this agent’s current documentation and give only the steps I need to do myself.
 
 ## 5. Reload and verify
@@ -53,7 +50,7 @@ Keep progress updates brief. The final reply must be **140 words or fewer** and 
 [Briefly say what succeeded or what blocked setup.]
 
 **Next**
-1. `[Give the native reload command or UI action for this agent, only if needed.]` Then say “Check that OpenSEO is connected.” Approve sign-in if prompted.
+1. `[Give the native reload command or UI action for this agent, only if needed.]` Then say “Check that Rankloupe is connected.” Approve sign-in if prompted.
 2. Try one of these:
    - `[SEO Audit invocation]` **(recommended)** — find your website's biggest SEO issues.
    - `[SEO Project Setup invocation]` — interview you about your website and set up its project context.

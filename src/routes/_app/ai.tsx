@@ -25,9 +25,13 @@ import {
 } from "@/client/features/ai-mcp/agentSetupPrompt";
 import { CopyButton } from "@/client/components/CopyButton";
 import { AgentList } from "@/client/features/ai-mcp/AgentList";
+import { PlanLockedSection } from "@/client/features/billing/entitlements";
+import { PRODUCT_NAME, SKILLS_REPO } from "@/shared/brand";
 
-const DOCS_URL = "https://openseo.so/docs/agent-setup";
-const COACH_DOCS_URL = "https://openseo.so/docs/skills/seo-coach";
+// Fork: setup and skill docs live in this fork's repository.
+const DOCS_URL = `https://github.com/${SKILLS_REPO}/tree/main/plugins/rankloupe#readme`;
+const skillDocsUrl = (name: string) =>
+  `https://github.com/${SKILLS_REPO}/tree/main/.agents/skills/${name}`;
 const LINK_CLASS =
   "text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground";
 const MUTED_LINK_CLASS =
@@ -84,7 +88,7 @@ function AiPage() {
       <div className="mx-auto max-w-7xl">
         <PageHeader
           title="Agent setup"
-          description="The most powerful way to use OpenSEO is through the AI agent you already use. Set it up once, then ask it anything."
+          description={`The most powerful way to use ${PRODUCT_NAME} is through the AI agent you already use. Set it up once, then ask it anything.`}
         />
 
         <Tabs
@@ -109,7 +113,8 @@ function AiPage() {
                     <h2>Set up your agent</h2>
                   </CardTitle>
                   <CardDescription>
-                    Paste the setup prompt into your agent to connect OpenSEO
+                    Paste the setup prompt into your agent to connect{" "}
+                    {PRODUCT_NAME}
                     and install its SEO skills. It will guide you through any
                     manual steps.
                   </CardDescription>
@@ -126,7 +131,7 @@ function AiPage() {
                       onCopy={() => captureClientEvent("mcp:setup_prompt_copy")}
                     />
                     <a
-                      href={`${DOCS_URL}#set-up-your-agent`}
+                      href={DOCS_URL}
                       target="_blank"
                       rel="noreferrer"
                       className={MUTED_LINK_CLASS}
@@ -140,7 +145,7 @@ function AiPage() {
                   <p>
                     Once connected, ask your agent to use{" "}
                     <a
-                      href={COACH_DOCS_URL}
+                      href={skillDocsUrl("seo-coach")}
                       target="_blank"
                       rel="noreferrer"
                       className={LINK_CLASS}
@@ -152,37 +157,41 @@ function AiPage() {
                 </CardFooter>
               </Card>
 
-              <Card size="lg">
-                <CardHeader>
-                  <CardTitle>
-                    <h2>Update your skills</h2>
-                  </CardTitle>
-                  <CardDescription>
-                    Already connected? Paste the update prompt into your agent
-                    to get the latest OpenSEO skills while preserving your
-                    connection settings and personal edits.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-wrap items-center gap-x-5 gap-y-3">
-                  <CopyButton
-                    variant="default"
-                    size="lg"
-                    value={agentUpdatePrompt}
-                    label="Copy update prompt"
-                    successMessage="Update prompt copied"
-                    onCopy={() => captureClientEvent("mcp:update_prompt_copy")}
-                  />
-                  <a
-                    href={`${DOCS_URL}#update-your-skills`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={MUTED_LINK_CLASS}
-                  >
-                    Update instructions
-                    <ArrowUpRight className="size-3.5" />
-                  </a>
-                </CardContent>
-              </Card>
+              <PlanLockedSection featureKey="agent_skills">
+                <Card size="lg">
+                  <CardHeader>
+                    <CardTitle>
+                      <h2>Update your skills</h2>
+                    </CardTitle>
+                    <CardDescription>
+                      Already connected? Paste the update prompt into your agent
+                      to get the latest {PRODUCT_NAME} skills while preserving
+                      your connection settings and personal edits.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap items-center gap-x-5 gap-y-3">
+                    <CopyButton
+                      variant="default"
+                      size="lg"
+                      value={agentUpdatePrompt}
+                      label="Copy update prompt"
+                      successMessage="Update prompt copied"
+                      onCopy={() =>
+                        captureClientEvent("mcp:update_prompt_copy")
+                      }
+                    />
+                    <a
+                      href={DOCS_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={MUTED_LINK_CLASS}
+                    >
+                      Update instructions
+                      <ArrowUpRight className="size-3.5" />
+                    </a>
+                  </CardContent>
+                </Card>
+              </PlanLockedSection>
             </div>
 
             {getAuthMode(import.meta.env.AUTH_MODE) === "cloudflare_access" ? (
@@ -217,30 +226,32 @@ function AiPage() {
             </div>
           </TabsContent>
           <TabsContent value="skills">
-            <section className="mt-6">
-              <p className="text-sm text-muted-foreground">
-                The setup prompt installs these. Run one by name when you want a
-                full report instead of a quick answer.
-              </p>
-              <ul className="mt-5 space-y-3 text-sm sm:space-y-2">
-                {SKILLS.map(([name, blurb]) => (
-                  <li
-                    key={name}
-                    className="flex flex-col gap-0.5 sm:flex-row sm:gap-3"
-                  >
-                    <a
-                      href={`https://openseo.so/docs/skills/${name}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={`shrink-0 font-mono text-[13px] sm:w-48 ${LINK_CLASS}`}
+            <PlanLockedSection featureKey="agent_skills" className="mt-6">
+              <section>
+                <p className="text-sm text-muted-foreground">
+                  The setup prompt installs these. Run one by name when you want
+                  a full report instead of a quick answer.
+                </p>
+                <ul className="mt-5 space-y-3 text-sm sm:space-y-2">
+                  {SKILLS.map(([name, blurb]) => (
+                    <li
+                      key={name}
+                      className="flex flex-col gap-0.5 sm:flex-row sm:gap-3"
                     >
-                      /{name}
-                    </a>
-                    <span className="text-muted-foreground">{blurb}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
+                      <a
+                        href={skillDocsUrl(name)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`shrink-0 font-mono text-[13px] sm:w-48 ${LINK_CLASS}`}
+                      >
+                        /{name}
+                      </a>
+                      <span className="text-muted-foreground">{blurb}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </PlanLockedSection>
           </TabsContent>
         </Tabs>
       </div>

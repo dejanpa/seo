@@ -24,12 +24,30 @@ import {
 import { useGooglePickerResume } from "@/client/features/integrations/useGooglePickerResume";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { captureClientEvent } from "@/client/lib/posthog";
+import { PlanLockedSection } from "@/client/features/billing/entitlements";
 
 /**
  * Connects one project to Search Console or Google Analytics: link a Google
  * account, pick a property, change it, or disconnect.
  */
-export function GoogleConnectionCard({
+// Fork: the local billing provider can leave Search Console or Google
+// Analytics out of a plan, so the card is shown locked rather than offering a
+// connection the server would refuse.
+export function GoogleConnectionCard(
+  props: Parameters<typeof GoogleConnectionCardBody>[0],
+) {
+  return (
+    <PlanLockedSection
+      featureKey={
+        props.provider === "gsc" ? "search_console" : "google_analytics"
+      }
+    >
+      <GoogleConnectionCardBody {...props} />
+    </PlanLockedSection>
+  );
+}
+
+function GoogleConnectionCardBody({
   provider,
   projectId,
   onDismiss,
