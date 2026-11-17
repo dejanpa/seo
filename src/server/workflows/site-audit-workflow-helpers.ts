@@ -121,7 +121,7 @@ export async function crawlPage(
 
     const contentType = response.headers.get("content-type") ?? "";
     const isHtml = contentType.includes("text/html");
-    // Cap what we read: the first 1 MiB still contains the SEO metadata and
+    // Cap what we read: the first 2 MiB still contains the SEO metadata and
     // navigation needed by the audit in normal documents.
     let body = isHtml ? await readTextUpTo(response, MAX_HTML_BYTES) : "";
     let fetchClass = classifyFetch(

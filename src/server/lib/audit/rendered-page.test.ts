@@ -119,7 +119,7 @@ describe("rendered page providers", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("keeps the first 1 MiB of an oversized render, as the direct crawl does", async () => {
+  it("keeps the first 2 MiB of an oversized render, as the direct crawl does", async () => {
     const head = "<html><head><title>Big page</title></head><body>";
     browser.quickAction.mockResolvedValue(
       cloudflare(200, head + "x".repeat(MAX_HTML_BYTES)),

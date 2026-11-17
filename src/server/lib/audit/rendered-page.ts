@@ -57,7 +57,7 @@ async function readProviderJson(
 }
 
 /**
- * The rendered HTML to analyze: the same first 1 MiB the direct crawl keeps,
+ * The rendered HTML to analyze: the same first 2 MiB the direct crawl keeps,
  * which still holds the metadata and navigation the audit reads.
  */
 function usableHtml(url: string, finalUrl: string, html: string) {

@@ -1,6 +1,8 @@
 import type { Response as BrowserResponse } from "@cloudflare/workers-types";
 
-export const MAX_HTML_BYTES = 1024 * 1024;
+// Googlebot reads the first 2 MB of an HTML file for Search; the audit reads
+// the same, so links Google can see are not lost behind large inline CSS.
+export const MAX_HTML_BYTES = 2 * 1024 * 1024;
 
 export async function readTextUpTo(
   response: Response | BrowserResponse,
